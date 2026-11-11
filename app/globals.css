@@ -1,142 +1,331 @@
 @import "tailwindcss";
 @import "shadcn/tailwind.css";
 
-@custom-variant dark (&:is(.dark *));
+/* ==========================================================================
+   SETTINGS: accent colors, rain, text size
+   Paste this at the END of app/globals.css so it wins over the old cyan /
+   fuchsia rules above it.
+   ========================================================================== */
 
+/* Every cyan-* and fuchsia-* Tailwind class now follows the chosen accent.
+   cyan    = the main accent colour
+   fuchsia = the second colour (--accent-alt): the gradient's middle stop, or
+             a lighter tint of the accent for solid colours. */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-  --color-sidebar-ring: var(--sidebar-ring);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar: var(--sidebar);
-  --color-chart-5: var(--chart-5);
-  --color-chart-4: var(--chart-4);
-  --color-chart-3: var(--chart-3);
-  --color-chart-2: var(--chart-2);
-  --color-chart-1: var(--chart-1);
-  --color-ring: var(--ring);
-  --color-input: var(--input);
-  --color-border: var(--border);
-  --color-destructive: var(--destructive);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-accent: var(--accent);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-muted: var(--muted);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-secondary: var(--secondary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-primary: var(--primary);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-popover: var(--popover);
-  --color-card-foreground: var(--card-foreground);
-  --color-card: var(--card);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  --color-cyan-50: color-mix(in oklab, var(--accent-500) 10%, white);
+  --color-cyan-100: color-mix(in oklab, var(--accent-500) 18%, white);
+  --color-cyan-200: color-mix(in oklab, var(--accent-300) 60%, white);
+  --color-cyan-300: var(--accent-300);
+  --color-cyan-400: var(--accent-400);
+  --color-cyan-500: var(--accent-500);
+  --color-cyan-600: var(--accent-600);
+  --color-cyan-700: var(--accent-700);
+  --color-cyan-800: color-mix(in oklab, var(--accent-700) 80%, black);
+  --color-cyan-900: color-mix(in oklab, var(--accent-700) 55%, black);
+  --color-cyan-950: color-mix(in oklab, var(--accent-500) 25%, black);
+
+  --color-fuchsia-200: color-mix(in oklab, var(--accent-alt) 45%, white);
+  --color-fuchsia-300: color-mix(in oklab, var(--accent-alt) 65%, white);
+  --color-fuchsia-400: var(--accent-alt);
+  --color-fuchsia-500: color-mix(in oklab, var(--accent-alt) 85%, black);
+  --color-fuchsia-600: color-mix(in oklab, var(--accent-alt) 70%, black);
+  --color-fuchsia-700: color-mix(in oklab, var(--accent-alt) 55%, black);
+  --color-fuchsia-900: color-mix(in oklab, var(--accent-alt) 35%, black);
+  --color-fuchsia-950: color-mix(in oklab, var(--accent-alt) 20%, black);
 }
 
+/* Accent palettes. AppearanceProvider writes data-accent="<id>" on <html>.
+   Solid accents only set --accent-300..700; gradients also set
+   --accent-from / --accent-via / --accent-to / --accent-alt. */
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.809 0.105 251.813);
-  --chart-2: oklch(0.623 0.214 259.815);
-  --chart-3: oklch(0.546 0.245 262.881);
-  --chart-4: oklch(0.488 0.243 264.376);
-  --chart-5: oklch(0.424 0.199 265.638);
-  --sidebar: hsl(0 0% 98%);
-  --sidebar-foreground: hsl(240 5.3% 26.1%);
-  --sidebar-primary: hsl(240 5.9% 10%);
-  --sidebar-primary-foreground: hsl(0 0% 98%);
-  --sidebar-accent: hsl(240 4.8% 95.9%);
-  --sidebar-accent-foreground: hsl(240 5.9% 10%);
-  --sidebar-border: hsl(220 13% 91%);
-  --sidebar-ring: hsl(217.2 91.2% 59.8%);
+  --accent-alt: var(--accent-300);
+  --accent-from: var(--accent-400);
+  --accent-via: var(--accent-500);
+  --accent-to: var(--accent-600);
+  --accent-gradient: linear-gradient(
+    135deg,
+    var(--accent-from),
+    var(--accent-via),
+    var(--accent-to)
+  );
 }
 
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.809 0.105 251.813);
-  --chart-2: oklch(0.623 0.214 259.815);
-  --chart-3: oklch(0.546 0.245 262.881);
-  --chart-4: oklch(0.488 0.243 264.376);
-  --chart-5: oklch(0.424 0.199 265.638);
-  --sidebar: hsl(240 5.9% 10%);
-  --sidebar-foreground: hsl(240 4.8% 95.9%);
-  --sidebar-primary: hsl(224.3 76.3% 48%);
-  --sidebar-primary-foreground: hsl(0 0% 100%);
-  --sidebar-accent: hsl(240 3.7% 15.9%);
-  --sidebar-accent-foreground: hsl(240 4.8% 95.9%);
-  --sidebar-border: hsl(240 3.7% 15.9%);
-  --sidebar-ring: hsl(217.2 91.2% 59.8%);
+[data-accent="neon"] {
+  --accent-300: #67e8f9;
+  --accent-400: #22d3ee;
+  --accent-500: #06b6d4;
+  --accent-600: #0891b2;
+  --accent-700: #0e7490;
+  --accent-from: #22d3ee;
+  --accent-via: #e879f9;
+  --accent-to: #fbbf24;
+  --accent-alt: #e879f9;
 }
 
-@layer base {
-  * {
-    @apply border-border outline-ring/50;
-    @apply border-border outline-ring/50;
-  }
-  body {
-    @apply bg-background text-foreground;
-    @apply bg-background text-foreground;
-  }
+[data-accent="emerald"] {
+  --accent-300: #6ee7b7;
+  --accent-400: #34d399;
+  --accent-500: #10b981;
+  --accent-600: #059669;
+  --accent-700: #047857;
 }
 
-.gradient-background2 {
-  background: linear-gradient(300deg, #000000, #000000, #efe8e8);
-  background-size: 180% 180%;
-  animation: gradient-animation 6s ease infinite;
+[data-accent="cyan"] {
+  --accent-300: #67e8f9;
+  --accent-400: #22d3ee;
+  --accent-500: #06b6d4;
+  --accent-600: #0891b2;
+  --accent-700: #0e7490;
 }
 
-@keyframes gradient-animation {
-  0% {
-    background-position: 0% 50%;
+[data-accent="violet"] {
+  --accent-300: #c4b5fd;
+  --accent-400: #a78bfa;
+  --accent-500: #8b5cf6;
+  --accent-600: #7c3aed;
+  --accent-700: #6d28d9;
+}
+
+[data-accent="pink"] {
+  --accent-300: #f9a8d4;
+  --accent-400: #f472b6;
+  --accent-500: #ec4899;
+  --accent-600: #db2777;
+  --accent-700: #be185d;
+}
+
+[data-accent="amber"] {
+  --accent-300: #fcd34d;
+  --accent-400: #fbbf24;
+  --accent-500: #f59e0b;
+  --accent-600: #d97706;
+  --accent-700: #b45309;
+}
+
+[data-accent="blue"] {
+  --accent-300: #93c5fd;
+  --accent-400: #60a5fa;
+  --accent-500: #3b82f6;
+  --accent-600: #2563eb;
+  --accent-700: #1d4ed8;
+}
+
+[data-accent="sunset"] {
+  --accent-300: #fdba9f;
+  --accent-400: #fb8f6b;
+  --accent-500: #f97350;
+  --accent-600: #ea5a35;
+  --accent-700: #c2410c;
+  --accent-from: #f97316;
+  --accent-via: #ec4899;
+  --accent-to: #8b5cf6;
+  --accent-alt: #ec4899;
+}
+
+[data-accent="ocean"] {
+  --accent-300: #7dd3fc;
+  --accent-400: #38bdf8;
+  --accent-500: #0ea5e9;
+  --accent-600: #0284c7;
+  --accent-700: #0369a1;
+  --accent-from: #22d3ee;
+  --accent-via: #3b82f6;
+  --accent-to: #6366f1;
+  --accent-alt: #3b82f6;
+}
+
+[data-accent="aurora"] {
+  --accent-300: #5eead4;
+  --accent-400: #2dd4bf;
+  --accent-500: #14b8a6;
+  --accent-600: #0d9488;
+  --accent-700: #0f766e;
+  --accent-from: #34d399;
+  --accent-via: #22d3ee;
+  --accent-to: #a78bfa;
+  --accent-alt: #22d3ee;
+}
+
+[data-accent="cotton"] {
+  --accent-300: #f0abfc;
+  --accent-400: #e879f9;
+  --accent-500: #d946ef;
+  --accent-600: #c026d3;
+  --accent-700: #a21caf;
+  --accent-from: #f9a8d4;
+  --accent-via: #c4b5fd;
+  --accent-to: #93c5fd;
+  --accent-alt: #c4b5fd;
+}
+
+[data-accent="inferno"] {
+  --accent-300: #fdba74;
+  --accent-400: #fb923c;
+  --accent-500: #f97316;
+  --accent-600: #ea580c;
+  --accent-700: #c2410c;
+  --accent-from: #facc15;
+  --accent-via: #f97316;
+  --accent-to: #ef4444;
+  --accent-alt: #f97316;
+}
+
+[data-accent="forest"] {
+  --accent-300: #86efac;
+  --accent-400: #4ade80;
+  --accent-500: #22c55e;
+  --accent-600: #16a34a;
+  --accent-700: #15803d;
+  --accent-from: #a3e635;
+  --accent-via: #22c55e;
+  --accent-to: #0d9488;
+  --accent-alt: #22c55e;
+}
+
+[data-accent="galaxy"] {
+  --accent-300: #a5b4fc;
+  --accent-400: #818cf8;
+  --accent-500: #6366f1;
+  --accent-600: #4f46e5;
+  --accent-700: #4338ca;
+  --accent-from: #6366f1;
+  --accent-via: #8b5cf6;
+  --accent-to: #d946ef;
+  --accent-alt: #8b5cf6;
+}
+
+[data-accent="rosegold"] {
+  --accent-300: #f5c2b8;
+  --accent-400: #e9a397;
+  --accent-500: #d98a7b;
+  --accent-600: #c06f61;
+  --accent-700: #9f5347;
+  --accent-from: #fbd3c5;
+  --accent-via: #e8a598;
+  --accent-to: #b76e79;
+  --accent-alt: #e8a598;
+}
+
+[data-accent="synthwave"] {
+  --accent-300: #d8b4fe;
+  --accent-400: #c084fc;
+  --accent-500: #a855f7;
+  --accent-600: #9333ea;
+  --accent-700: #7e22ce;
+  --accent-from: #ff2e97;
+  --accent-via: #a855f7;
+  --accent-to: #00e5ff;
+  --accent-alt: #a855f7;
+}
+
+[data-accent="crimson"] {
+  --accent-300: #fca5a5;
+  --accent-400: #f87171;
+  --accent-500: #ef4444;
+  --accent-600: #dc2626;
+  --accent-700: #b91c1c;
+  --accent-from: #ef4444;
+  --accent-via: #be185d;
+  --accent-to: #6d28d9;
+  --accent-alt: #be185d;
+}
+
+/* ---- the cyber skin, re-pointed at the accent ---------------------------- */
+.cyber-beam {
+  background: linear-gradient(
+    90deg,
+    color-mix(in oklab, var(--accent-from) 33%, transparent),
+    color-mix(in oklab, var(--accent-via) 33%, transparent),
+    color-mix(in oklab, var(--accent-to) 33%, transparent)
+  );
+}
+.cyber-beam::after {
+  filter: drop-shadow(0 0 6px var(--accent-400));
+}
+.cyber-glitch::before {
+  color: var(--accent-400);
+}
+.cyber-glitch::after {
+  color: var(--accent-alt);
+}
+@keyframes cyber-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--accent-400) 70%, transparent);
   }
   50% {
-    background-position: 100% 50%;
+    box-shadow: 0 0 0 6px color-mix(in oklab, var(--accent-400) 0%, transparent);
   }
-  100% {
-    background-position: 0% 50%;
-  }
+}
+[data-sidebar="sidebar"] {
+  background:
+    radial-gradient(
+      400px 200px at 0% 0%,
+      color-mix(in oklab, var(--accent-from) 14%, transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      400px 300px at 100% 100%,
+      color-mix(in oklab, var(--accent-alt) 14%, transparent),
+      transparent 70%
+    ),
+    #05060a !important;
+  border-right: 1px solid
+    color-mix(in oklab, var(--accent-400) 35%, transparent);
+  box-shadow: 4px 0 30px -10px
+    color-mix(in oklab, var(--accent-400) 35%, transparent);
+}
+.cyber-nav:hover {
+  background: color-mix(
+    in oklab,
+    var(--accent-400) 10%,
+    transparent
+  ) !important;
+}
+.cyber-nav[data-active="true"] {
+  color: var(--accent-400);
+  background: linear-gradient(
+    90deg,
+    color-mix(in oklab, var(--accent-400) 22%, transparent),
+    transparent
+  ) !important;
+  box-shadow: inset 3px 0 0 var(--accent-400);
+  text-shadow: 0 0 10px color-mix(in oklab, var(--accent-400) 80%, transparent);
+}
+.cyber-nav[data-active="true"] svg {
+  filter: drop-shadow(0 0 5px var(--accent-400));
+}
+
+/* ---- helpers ------------------------------------------------------------ */
+.accent-gradient-bg {
+  background-image: var(--accent-gradient);
+}
+.accent-gradient-text {
+  background-image: var(--accent-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+/* Put on any card: accent border + soft glow that follows the accent. */
+.accent-card {
+  border: 1px solid color-mix(in oklab, var(--accent-400) 25%, transparent);
+  box-shadow: 0 0 24px -10px
+    color-mix(in oklab, var(--accent-400) 35%, transparent);
+}
+
+/* ---- "Neon glow" switch off: kill the text glow too --------------------- */
+html[data-glow="off"] [style*="text-shadow"],
+html[data-glow="off"] .cyber-nav[data-active="true"] {
+  text-shadow: none !important;
+}
+
+/* ---- text size. Tailwind sizes are rem-based, so this scales the app ----- */
+html[data-size="small"] {
+  font-size: 14.5px;
+}
+html[data-size="default"] {
+  font-size: 16px;
+}
+html[data-size="large"] {
+  font-size: 18.5px;
 }

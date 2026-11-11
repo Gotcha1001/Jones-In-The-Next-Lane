@@ -8,8 +8,10 @@
  * @module
  */
 
+import type * as appearance from "../appearance.js";
 import type * as chat from "../chat.js";
 import type * as game from "../game.js";
+import type * as lib_appearance from "../lib/appearance.js";
 import type * as lib_auth from "../lib/auth.js";
 import type * as rooms from "../rooms.js";
 import type * as saves from "../saves.js";
@@ -22,8 +24,10 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  appearance: typeof appearance;
   chat: typeof chat;
   game: typeof game;
+  "lib/appearance": typeof lib_appearance;
   "lib/auth": typeof lib_auth;
   rooms: typeof rooms;
   saves: typeof saves;
