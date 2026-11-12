@@ -262,8 +262,14 @@ function applyAction(
   switch (action.type) {
     case "moveTo": {
       if (action.locationId === p.location) return fail("You're already here.");
+      // Not enough time left to get anywhere: the week simply ends (the
+      // engine rolls it over and sends the player home).
       if (p.timeLeft < TRAVEL_TIME)
-        return fail("Not enough time to travel there. End your week.");
+        return done(
+          p,
+          "You ran out of time before you could get there.",
+          p.timeLeft,
+        );
       return done(
         { ...p, location: action.locationId },
         `You travelled to the ${locations[action.locationId].name}.`,
@@ -742,7 +748,13 @@ function updateMarket(market: readonly Stock[], rng: () => number): Stock[] {
 
 // ── Public entry point ──────────────────────────────────────────────────────
 export type ActionOutcome =
-  | { readonly ok: true; readonly core: GameCore; readonly message: string }
+  | {
+      readonly ok: true;
+      readonly core: GameCore;
+      readonly message: string;
+      /** True when this action used up the week and a new one began. */
+      readonly weekEnded: boolean;
+    }
   | { readonly ok: false; readonly error: string };
 
 function pushLog(
@@ -802,13 +814,16 @@ export function performAction(
       ok: true,
       core: next,
       message: `🎉 ${result.player.name} won the game!`,
+      weekEnded: false,
     };
   }
 
-  // Spend time; roll the week over when it runs out.
+  // Spend time; roll the week over when it runs out. Less than one trip's
+  // worth of time left counts as "out": nothing useful can be done with it.
+  let weekEnded = false;
   if (result.time > 0) {
     const timeLeft = result.player.timeLeft - result.time;
-    if (timeLeft > 0) {
+    if (timeLeft >= TRAVEL_TIME) {
       next = {
         ...next,
         players: setAt(next.players, seat, { ...result.player, timeLeft }),
@@ -817,9 +832,10 @@ export function performAction(
       const rolled = rollWeek(next, seat, rng, now);
       next = rolled.core;
       message = `${message} ${rolled.summary}`.trim();
+      weekEnded = true;
     }
   }
-  return { ok: true, core: next, message };
+  return { ok: true, core: next, message, weekEnded };
 }
 
 function rollWeek(
@@ -833,10 +849,14 @@ function rollWeek(
     ...before,
     week: before.week + 1,
     timeLeft: WEEK_LENGTH,
+    // A new week starts at home, if they have one.
+    location: before.rental.hasApartment ? "apartment" : before.location,
     energy: Math.min(before.energy + 20, 100),
     happiness: before.happiness > 50 ? before.happiness - 5 : before.happiness,
   };
   let summary = `Week ${p.week} begins for ${p.name}.`;
+  if (p.location !== before.location)
+    summary += " You went home for the weekend.";
   let next: GameCore = core;
 
   if (rng() < 0.7) {

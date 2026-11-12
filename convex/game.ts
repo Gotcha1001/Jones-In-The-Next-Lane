@@ -146,7 +146,7 @@ export const createLocalGame = mutation({
 });
 
 export type ActResult =
-  | { ok: true; message: string }
+  | { ok: true; message: string; weekEnded: boolean }
   | { ok: false; error: string };
 
 export const act = mutation({
@@ -172,7 +172,11 @@ export const act = mutation({
     if (outcome.core.status === "finished" && game.roomId) {
       await ctx.db.patch(game.roomId, { status: "finished" });
     }
-    return { ok: true, message: outcome.message };
+    return {
+      ok: true,
+      message: outcome.message,
+      weekEnded: outcome.weekEnded,
+    };
   },
 });
 
