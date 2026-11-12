@@ -10,6 +10,11 @@ import type { LeisureId } from "@/lib/game/validators";
 import { useGame } from "./GameContext";
 import { ActionButton, ScreenCard } from "./ui";
 
+const ROW =
+  "accent-card flex items-center justify-between rounded-xl p-3 transition hover:border-cyan-400/70 hover:shadow-[0_0_14px_var(--accent-400)]";
+const NAME = "font-medium text-white";
+const META = "text-xs text-cyan-300/80";
+
 export function Mall() {
   const { player } = useGame();
   return (
@@ -21,15 +26,12 @@ export function Mall() {
         {shopItems.map((item) => {
           const owned = player.possessions.includes(item.name);
           return (
-            <div
-              key={item.name}
-              className="flex items-center justify-between rounded-xl border p-3"
-            >
+            <div key={item.name} className={ROW}>
               <div>
-                <p className="font-medium">
+                <p className={NAME}>
                   {item.image} {item.name}
                 </p>
-                <p className="text-xs text-muted-foreground">
+                <p className={META}>
                   ${item.price}
                   {item.happiness ? ` · +${item.happiness} 😊` : ""}
                   {item.energy ? ` · +${item.energy} ⚡` : ""}
@@ -58,13 +60,10 @@ export function FastFood() {
     >
       <div className="grid gap-2 sm:grid-cols-2">
         {meals.map((m) => (
-          <div
-            key={m.id}
-            className="flex items-center justify-between rounded-xl border p-3"
-          >
+          <div key={m.id} className={ROW}>
             <div>
-              <p className="font-medium">{m.name}</p>
-              <p className="text-xs text-muted-foreground">
+              <p className={NAME}>{m.name}</p>
+              <p className={META}>
                 ${m.price} · +{m.energy} ⚡ · +{m.happiness} 😊
               </p>
             </div>
@@ -88,18 +87,19 @@ export function HealingCentre() {
       title="Zen Healing Centre"
       subtitle="Boosts relationship health and happiness (15 time units)."
     >
-      <p className="mb-2 text-sm">
-        Health: <strong>{player.relationship.health}</strong>/100 (goal: 80+)
+      <p className="mb-2 text-sm text-cyan-100">
+        Health:{" "}
+        <strong className="accent-gradient-text">
+          {player.relationship.health}
+        </strong>
+        /100 (goal: 80+)
       </p>
       <div className="grid gap-2 sm:grid-cols-2">
         {healingServices.map((s) => (
-          <div
-            key={s.id}
-            className="flex items-center justify-between rounded-xl border p-3"
-          >
+          <div key={s.id} className={ROW}>
             <div>
-              <p className="font-medium">{s.name}</p>
-              <p className="text-xs text-muted-foreground">
+              <p className={NAME}>{s.name}</p>
+              <p className={META}>
                 ${s.price} · +{s.health} ❤️ · +{s.happiness} 😊
               </p>
             </div>
@@ -128,13 +128,10 @@ export function LeisureCentre() {
         {ids.map((id) => {
           const a = leisureActivities[id];
           return (
-            <div
-              key={id}
-              className="flex items-center justify-between rounded-xl border p-3"
-            >
+            <div key={id} className={ROW}>
               <div>
-                <p className="font-medium">{a.name}</p>
-                <p className="text-xs text-muted-foreground">
+                <p className={NAME}>{a.name}</p>
+                <p className={META}>
                   {a.description} · ${a.cost} · {a.time}⏱ · −{a.energy} ⚡ · +
                   {a.happiness} 😊
                 </p>

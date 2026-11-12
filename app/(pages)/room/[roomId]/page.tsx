@@ -2,11 +2,19 @@
 
 import { use } from "react";
 import { useRouter } from "next/navigation";
-import { useQuery } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
+import { toast } from "sonner";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { WaitingRoom } from "@/app/components/WaitingRoom";
 import { GameView } from "@/app/components/game/GameView";
+import { Button } from "@/components/ui/button";
+
+// Inline style on purpose: html[data-glow="off"] strips any [style*="text-shadow"]
+const GLOW_TEXT = {
+  textShadow:
+    "0 0 12px color-mix(in oklab, var(--accent-400) 70%, transparent)",
+} as const;
 
 export default function RoomPage({
   params,
@@ -19,12 +27,16 @@ export default function RoomPage({
   const view = useQuery(api.rooms.getRoom, { roomId });
 
   if (view === undefined)
-    return <p className="text-muted-foreground">Loading room…</p>;
+    return <p className="text-cyan-300/70">Loading room…</p>;
   if (view === null) {
     return (
-      <div className="mx-auto max-w-md text-center">
+      <div className="accent-card mx-auto max-w-md rounded-2xl bg-card p-8 text-center">
         <p className="mb-4">That room doesn&apos;t exist (or was closed).</p>
-        <button className="underline" onClick={() => router.push("/lobby")}>
+        <button
+          className="text-cyan-300 underline underline-offset-4 hover:text-fuchsia-300"
+          style={GLOW_TEXT}
+          onClick={() => router.push("/lobby")}
+        >
           Back to the lobby
         </button>
       </div>
@@ -52,10 +64,6 @@ export default function RoomPage({
   return <WaitingRoom view={view} />;
 }
 
-import { useMutation } from "convex/react";
-import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-
 function JoinPrompt({
   roomId,
   full,
@@ -67,8 +75,11 @@ function JoinPrompt({
 }) {
   const join = useMutation(api.rooms.joinRoom);
   return (
-    <div className="mx-auto max-w-md rounded-2xl border bg-card p-8 text-center">
-      <p className="mb-4 text-lg font-semibold">
+    <div className="accent-card mx-auto max-w-md rounded-2xl bg-card p-8 text-center">
+      <p
+        className="accent-gradient-text mb-4 text-lg font-semibold"
+        style={GLOW_TEXT}
+      >
         You&apos;ve been invited to a room
       </p>
       {(full || started) && (
@@ -78,7 +89,7 @@ function JoinPrompt({
       )}
       <Button
         disabled={full || started}
-        className="bg-indigo-600 text-white hover:bg-indigo-500"
+        className="accent-gradient-bg border-0 text-white shadow-[0_0_18px_-4px_color-mix(in_oklab,var(--accent-400)_70%,transparent)] hover:brightness-110 disabled:shadow-none"
         onClick={() =>
           void join({ roomId }).catch((e: unknown) =>
             toast.error(e instanceof Error ? e.message : "Couldn't join"),

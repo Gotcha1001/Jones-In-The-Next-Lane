@@ -52,11 +52,17 @@ export default function PlaceVideoHeader({ place }: PlaceVideoHeaderProps) {
         />
       )}
 
-      {/* Colour tint per place + readability gradient */}
+      {/* Colour tint per place + readability gradient (kept: place identity) */}
       <div
         className={`absolute inset-0 bg-gradient-to-br ${place.media.accent} mix-blend-soft-light`}
       />
       <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-black/30" />
+
+      {/* Accent glow: soft wash rising from the bottom edge */}
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_bottom,var(--accent-400),transparent_65%)] opacity-25 mix-blend-screen" />
+
+      {/* Accent glow line along the bottom edge */}
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-cyan-400/70 shadow-[0_0_18px_2px_var(--accent-400)]" />
     </div>
   );
 }

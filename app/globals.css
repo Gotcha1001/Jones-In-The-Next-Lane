@@ -329,3 +329,17 @@ html[data-size="default"] {
 html[data-size="large"] {
   font-size: 18.5px;
 }
+
+/* ---- pure black theme (dark mode) ---------------------------------------
+   Paste at the END of globals.css so it wins over the shadcn defaults. */
+.dark {
+  --background: #000000;
+  --card: #05060a; /* same near-black as the sidebar, so cards still read against the page */
+  --popover: #05060a;
+  --sidebar: #000000;
+}
+
+html.dark,
+.dark body {
+  background-color: #000000;
+}

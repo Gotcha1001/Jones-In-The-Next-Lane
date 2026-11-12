@@ -27,9 +27,9 @@ export function GoalsEditor({ goals, onChange }: Props) {
     <div className="space-y-3">
       {SLIDERS.map((s) => (
         <label key={s.key} className="block text-sm">
-          <span className="flex justify-between">
-            <span>{s.label}</span>
-            <span className="font-mono">{goals[s.key]}</span>
+          <span className="mb-1 flex justify-between">
+            <span className="text-muted-foreground">{s.label}</span>
+            <span className="font-mono text-cyan-300">{goals[s.key]}</span>
           </span>
           <input
             type="range"
@@ -40,13 +40,24 @@ export function GoalsEditor({ goals, onChange }: Props) {
             onChange={(e) =>
               onChange({ ...goals, [s.key]: Number(e.target.value) })
             }
-            className="w-full"
+            className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-white/10 accent-cyan-400
+              [&::-webkit-slider-thumb]:h-3.5
+              [&::-webkit-slider-thumb]:w-3.5
+              [&::-webkit-slider-thumb]:appearance-none
+              [&::-webkit-slider-thumb]:rounded-full
+              [&::-webkit-slider-thumb]:bg-cyan-400
+              [&::-webkit-slider-thumb]:shadow-[0_0_10px_color-mix(in_oklab,var(--accent-400)_60%,transparent)]
+              [&::-moz-range-thumb]:h-3.5
+              [&::-moz-range-thumb]:w-3.5
+              [&::-moz-range-thumb]:rounded-full
+              [&::-moz-range-thumb]:border-0
+              [&::-moz-range-thumb]:bg-cyan-400"
           />
         </label>
       ))}
       <button
         type="button"
-        className="text-xs text-muted-foreground underline"
+        className="text-xs text-cyan-400/80 underline underline-offset-2 transition hover:text-cyan-300"
         onClick={() => onChange(DEFAULT_GOALS)}
       >
         Reset to defaults

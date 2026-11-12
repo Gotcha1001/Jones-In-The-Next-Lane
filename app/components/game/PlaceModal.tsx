@@ -84,7 +84,7 @@ export default function PlaceModal({
             role="dialog"
             aria-modal="true"
             aria-labelledby={titleId}
-            className="relative flex max-h-[100dvh] w-full max-w-5xl flex-col overflow-hidden bg-slate-950 text-white shadow-2xl ring-1 ring-white/10 sm:max-h-[92vh] sm:rounded-3xl"
+            className="relative flex max-h-[100dvh] w-full max-w-5xl flex-col overflow-hidden bg-slate-950 text-white ring-1 ring-cyan-400/40 shadow-[0_0_40px_var(--accent-400)] sm:max-h-[92vh] sm:rounded-3xl"
             initial={{ opacity: 0, y: 48, scale: 0.97 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 32, scale: 0.98 }}
@@ -102,7 +102,7 @@ export default function PlaceModal({
                   type="button"
                   onClick={handleClose}
                   aria-label={`Leave ${place.name}`}
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur transition hover:bg-black/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-yellow-400"
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-cyan-400/40 bg-black/50 text-cyan-300 backdrop-blur transition hover:border-cyan-400 hover:bg-black/70 hover:text-cyan-100 hover:shadow-[0_0_14px_var(--accent-400)] focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400"
                 >
                   <X className="h-5 w-5" />
                 </button>
@@ -112,16 +112,16 @@ export default function PlaceModal({
                 <img
                   src={place.media.portrait}
                   alt={place.media.portraitAlt}
-                  className="h-20 w-20 shrink-0 rounded-full border-4 border-white/80 object-cover shadow-xl sm:h-28 sm:w-28"
+                  className="h-20 w-20 shrink-0 rounded-full border-4 border-cyan-400/80 object-cover shadow-[0_0_20px_var(--accent-400)] sm:h-28 sm:w-28"
                 />
                 <div className="min-w-0">
                   <h2
                     id={titleId}
-                    className="truncate text-2xl font-extrabold tracking-tight drop-shadow sm:text-4xl"
+                    className="truncate text-2xl font-extrabold tracking-tight text-white drop-shadow-[0_0_12px_var(--accent-400)] sm:text-4xl"
                   >
                     {place.name}
                   </h2>
-                  <p className="text-sm text-white/80 sm:text-base">
+                  <p className="text-sm text-cyan-100/90 sm:text-base">
                     {place.description}
                   </p>
                 </div>
@@ -131,7 +131,7 @@ export default function PlaceModal({
             {/* Body */}
             <div className="flex-1 space-y-5 overflow-y-auto p-4 sm:p-6">
               <p
-                className={`rounded-2xl bg-gradient-to-r ${place.media.accent} px-5 py-4 text-sm italic text-white shadow-md ring-1 ring-white/10 sm:text-base`}
+                className={`rounded-2xl bg-gradient-to-r ${place.media.accent} px-5 py-4 text-sm italic text-white ring-1 ring-cyan-400/40 shadow-[0_0_16px_var(--accent-400)] sm:text-base`}
               >
                 “{greeting ?? place.media.greeting}”
               </p>

@@ -31,20 +31,20 @@ export function LocationPanel() {
   const loc = locations[player.location];
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between gap-3 rounded-2xl border bg-gradient-to-r from-indigo-950 to-teal-900 p-4 text-white">
+      <div className="accent-card flex items-center justify-between gap-3 rounded-2xl border border-cyan-400/40 bg-gradient-to-r from-slate-950 via-cyan-950/60 to-slate-950 p-4 text-white shadow-[0_0_24px_var(--accent-400)]">
         <div>
-          <p className="text-xs uppercase tracking-widest text-white/60">
+          <p className="text-xs uppercase tracking-widest text-cyan-300/70">
             {player.name} is at
           </p>
-          <h2 className="text-xl font-bold">
+          <h2 className="accent-gradient-text text-xl font-bold">
             {loc.emoji} {loc.name}
           </h2>
-          <p className="text-sm text-white/70">{loc.description}</p>
+          <p className="text-sm text-cyan-100/80">{loc.description}</p>
         </div>
         <ActionButton
           action={{ type: "endTurn" }}
           variant="outline"
-          className="border-white/30 bg-white/10 text-white hover:bg-white/20"
+          className="border-cyan-400/50 bg-cyan-500/10 text-cyan-100 transition hover:border-cyan-400 hover:bg-cyan-500/20 hover:shadow-[0_0_14px_var(--accent-400)]"
         >
           End week
         </ActionButton>

@@ -8,6 +8,15 @@ import { ActionButton, ScreenCard } from "./ui";
 
 type Filter = "all" | "Male" | "Female";
 
+const CARD =
+  "accent-card rounded-xl p-3 transition hover:border-cyan-400/70 hover:shadow-[0_0_14px_var(--accent-400)]";
+const PILL =
+  "rounded-full border px-3 py-1 text-xs transition hover:border-cyan-400 hover:shadow-[0_0_10px_var(--accent-400)]";
+const PILL_ON =
+  "border-cyan-400 bg-cyan-500/20 text-cyan-100 shadow-[0_0_12px_var(--accent-400)]";
+const PILL_OFF = "border-cyan-400/30 bg-black/40 text-cyan-300/80";
+const META = "text-xs text-cyan-300/80";
+
 export function DatingOffice() {
   const { player } = useGame();
   const [filter, setFilter] = useState<Filter>("all");
@@ -32,7 +41,7 @@ export function DatingOffice() {
               key={f}
               type="button"
               onClick={() => setFilter(f)}
-              className={`rounded-full border px-3 py-1 text-xs ${filter === f ? "border-pink-500 bg-pink-500/10" : ""}`}
+              className={`${PILL} ${filter === f ? PILL_ON : PILL_OFF}`}
             >
               {f === "all" ? "Everyone" : f}
             </button>
@@ -41,22 +50,18 @@ export function DatingOffice() {
       )}
       <div className="grid gap-3 sm:grid-cols-2">
         {list.map((person) => (
-          <div key={person.id} className="rounded-xl border p-3">
+          <div key={person.id} className={CARD}>
             <div className="mb-2 flex items-center gap-3">
               <PlayerAvatar src={person.image} name={person.name} size={56} />
               <div>
-                <p className="font-medium">{person.name}</p>
-                <p className="text-xs text-pink-500">
+                <p className="font-medium text-white">{person.name}</p>
+                <p className="accent-gradient-text text-xs font-semibold">
                   {person.compatibility}% compatible
                 </p>
               </div>
             </div>
-            <p className="text-xs text-muted-foreground">
-              {person.personality}
-            </p>
-            <p className="mb-2 text-xs text-muted-foreground">
-              {person.interests}
-            </p>
+            <p className={META}>{person.personality}</p>
+            <p className={`mb-2 ${META}`}>{person.interests}</p>
             {rel.isDating ? (
               <div className="flex gap-2">
                 <ActionButton

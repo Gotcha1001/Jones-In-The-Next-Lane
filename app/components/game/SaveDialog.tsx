@@ -39,23 +39,33 @@ export function SaveDialog({ gameId }: { gameId: Id<"games"> }) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-1">
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-1 border-cyan-400/40 bg-black/40 text-cyan-300 transition hover:border-cyan-400 hover:bg-black/60 hover:text-cyan-200 hover:shadow-[0_0_14px_var(--accent-400)]"
+        >
           <Save size={14} /> Save
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="accent-card border-cyan-400/40 bg-black/80 text-white backdrop-blur shadow-[0_0_24px_var(--accent-400)]">
         <DialogHeader>
-          <DialogTitle>Save this game</DialogTitle>
+          <DialogTitle className="accent-gradient-text">
+            Save this game
+          </DialogTitle>
         </DialogHeader>
         <input
           value={title}
           maxLength={60}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="Name this save (optional)"
-          className="rounded-lg border bg-background px-3 py-2 text-sm outline-none"
+          className="rounded-lg border border-cyan-400/40 bg-black/50 px-3 py-2 text-sm text-white placeholder:text-cyan-300/50 outline-none transition focus:border-cyan-400 focus:shadow-[0_0_12px_var(--accent-400)]"
         />
         <DialogFooter>
-          <Button disabled={busy} onClick={() => void onSave()}>
+          <Button
+            disabled={busy}
+            onClick={() => void onSave()}
+            className="border border-cyan-400/60 bg-cyan-500/20 text-cyan-100 transition hover:bg-cyan-500/30 hover:shadow-[0_0_14px_var(--accent-400)]"
+          >
             {busy ? "Saving…" : "Save"}
           </Button>
         </DialogFooter>

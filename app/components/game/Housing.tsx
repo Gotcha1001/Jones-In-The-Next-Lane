@@ -13,6 +13,15 @@ import { RENT_INTERVAL_WEEKS } from "@/lib/game/engine";
 import { useGame } from "./GameContext";
 import { ActionButton, ScreenCard } from "./ui";
 
+const ROW =
+  "accent-card flex items-center justify-between rounded-xl p-3 transition hover:border-cyan-400/70 hover:shadow-[0_0_14px_var(--accent-400)]";
+const TIER =
+  "accent-card rounded-xl p-3 transition hover:border-cyan-400/70 hover:shadow-[0_0_14px_var(--accent-400)]";
+const TIER_CURRENT =
+  "accent-card rounded-xl border-cyan-400 p-3 shadow-[0_0_18px_var(--accent-400)]";
+const NAME = "font-medium text-white";
+const META = "text-xs text-cyan-300/80";
+
 export function RentalOffice() {
   const { player } = useGame();
   const { rental } = player;
@@ -28,14 +37,16 @@ export function RentalOffice() {
     >
       {rental.hasApartment ? (
         <p
-          className={`mb-3 text-sm ${rental.rentDue ? "font-semibold text-red-500" : ""}`}
+          className={`mb-3 text-sm ${
+            rental.rentDue ? "font-semibold text-red-500" : "text-cyan-100"
+          }`}
         >
           {rental.rentDue
             ? `⚠️ Rent of $${rental.rentAmount} is overdue — 20% of wages are garnished.`
             : `Your rent is $${rental.rentAmount}/month. Next payment due in ${nextDue} week(s).`}
         </p>
       ) : (
-        <p className="mb-3 text-sm text-muted-foreground">
+        <p className="mb-3 text-sm text-cyan-300/80">
           You don&apos;t have an apartment yet.
         </p>
       )}
@@ -49,12 +60,9 @@ export function RentalOffice() {
             tierOrder.indexOf(tier) < tierOrder.indexOf(current);
           const cost = current === null ? t.deposit : upgradeFee(current, tier);
           return (
-            <div
-              key={tier}
-              className={`rounded-xl border p-3 ${isCurrent ? "border-indigo-500" : ""}`}
-            >
-              <p className="font-semibold">{t.label}</p>
-              <p className="text-xs text-muted-foreground">
+            <div key={tier} className={isCurrent ? TIER_CURRENT : TIER}>
+              <p className="font-semibold text-white">{t.label}</p>
+              <p className={META}>
                 ${t.rentAmount}/month ·{" "}
                 {current === null
                   ? `$${t.deposit} deposit`
@@ -69,7 +77,7 @@ export function RentalOffice() {
                     Rent
                   </ActionButton>
                 ) : isCurrent ? (
-                  <span className="text-xs font-semibold text-indigo-500">
+                  <span className="accent-gradient-text text-xs font-semibold">
                     Current home
                   </span>
                 ) : (
@@ -135,20 +143,15 @@ export function Apartment() {
           </ActionButton>
         ))}
       </div>
-      <h4 className="mb-2 mt-4 text-sm font-semibold">
+      <h4 className="accent-gradient-text mb-2 mt-4 text-sm font-semibold">
         Study at home (15⏱ per hour)
       </h4>
       <div className="grid gap-2 sm:grid-cols-2">
         {SUBJECTS.map((s) => (
-          <div
-            key={s.id}
-            className="flex items-center justify-between rounded-xl border p-3"
-          >
+          <div key={s.id} className={ROW}>
             <div>
-              <p className="text-sm font-medium">{s.name}</p>
-              <p className="text-xs text-muted-foreground">
-                Level {player.subjects[s.id]}/100
-              </p>
+              <p className="text-sm font-medium text-white">{s.name}</p>
+              <p className={META}>Level {player.subjects[s.id]}/100</p>
             </div>
             <ActionButton
               action={{ type: "studySubject", subject: s.id, hours: 1 }}

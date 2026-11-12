@@ -21,14 +21,18 @@ interface Draft {
 }
 
 interface SeatTheme {
-  /** Hex colour used for borders, glows and text accents. */
+  /** Any CSS colour (hex or var()). Used for borders, glows and text accents. */
   color: string;
   label: string;
 }
 
-/** One neon colour per seat so hot-seat players are easy to tell apart. */
+/**
+ * One neon colour per seat so hot-seat players are easy to tell apart.
+ * Seat 1 follows the chosen accent; seats 2-5 stay fixed on purpose so that
+ * players never end up with two identical colours.
+ */
 const SEAT_THEMES: readonly SeatTheme[] = [
-  { color: "#22d3ee", label: "CYAN" },
+  { color: "var(--accent-400)", label: "ACCENT" },
   { color: "#e879f9", label: "MAGENTA" },
   { color: "#a3e635", label: "LIME" },
   { color: "#fbbf24", label: "AMBER" },
@@ -39,6 +43,18 @@ const CUT = 14; // px size of the clipped corners
 
 const clip = (c: number = CUT): string =>
   `polygon(0 0, calc(100% - ${c}px) 0, 100% ${c}px, 100% 100%, ${c}px 100%, 0 calc(100% - ${c}px))`;
+
+/** Transparent version of ANY css colour (hex or var()). Replaces the old `${hex}66` trick. */
+const mix = (color: string, pct: number): string =>
+  `color-mix(in oklab, ${color} ${pct}%, transparent)`;
+
+// Accent colours used outside the seat themes
+const ACCENT = "var(--accent-400)";
+
+// Inline style on purpose: html[data-glow="off"] strips any [style*="text-shadow"]
+const GLOW_TEXT = {
+  textShadow: `0 0 12px ${mix(ACCENT, 70)}`,
+} as const;
 
 const SCANLINES =
   "repeating-linear-gradient(0deg, rgba(255,255,255,0.05) 0px, rgba(255,255,255,0.05) 1px, transparent 1px, transparent 3px)";
@@ -89,13 +105,12 @@ export default function NewLocalGamePage() {
 
   return (
     <div className="relative mx-auto max-w-6xl space-y-8 pb-12">
-      {/* ambient neon glow + grid */}
+      {/* ambient neon glow + grid (follows the accent's two colours) */}
       <div
         aria-hidden
         className="pointer-events-none absolute -inset-x-10 -top-10 bottom-0 -z-10 opacity-70"
         style={{
-          background:
-            "radial-gradient(600px 300px at 15% 0%, rgba(34,211,238,0.14), transparent 70%), radial-gradient(600px 400px at 90% 30%, rgba(232,121,249,0.14), transparent 70%)",
+          background: `radial-gradient(600px 300px at 15% 0%, ${mix("var(--accent-from)", 16)}, transparent 70%), radial-gradient(600px 400px at 90% 30%, ${mix("var(--accent-alt)", 16)}, transparent 70%)`,
         }}
       />
       <div
@@ -110,10 +125,16 @@ export default function NewLocalGamePage() {
 
       {/* header */}
       <div className="space-y-2">
-        <p className="font-mono text-xs tracking-[0.35em] text-cyan-400">
+        <p
+          className="font-mono text-xs tracking-[0.35em] text-cyan-400"
+          style={GLOW_TEXT}
+        >
           {"// SOLO · HOT-SEAT PROTOCOL"}
         </p>
-        <h1 className="bg-gradient-to-r from-cyan-300 via-fuchsia-400 to-amber-300 bg-clip-text text-4xl font-black uppercase tracking-tight text-transparent md:text-5xl">
+        <h1
+          className="accent-gradient-text text-4xl font-black uppercase tracking-tight md:text-5xl"
+          style={GLOW_TEXT}
+        >
           Choose your runner
         </h1>
         <p className="max-w-2xl text-muted-foreground">
@@ -136,13 +157,13 @@ export default function NewLocalGamePage() {
               onClick={() => setCount(n)}
               style={{
                 clipPath: clip(8),
-                borderColor: on ? "#22d3ee" : "transparent",
-                boxShadow: on ? "0 0 18px rgba(34,211,238,0.55)" : undefined,
+                borderColor: on ? ACCENT : "transparent",
+                boxShadow: on ? `0 0 18px ${mix(ACCENT, 55)}` : undefined,
               }}
               className={`h-11 w-12 border font-mono text-lg font-bold transition ${
                 on
                   ? "bg-cyan-400 text-black"
-                  : "bg-white/5 text-white/70 hover:bg-white/10 hover:text-white"
+                  : "bg-white/5 text-white/70 hover:bg-cyan-400/15 hover:text-white"
               }`}
             >
               {n}
@@ -165,7 +186,7 @@ export default function NewLocalGamePage() {
                 style={{
                   clipPath: clip(10),
                   borderColor: on ? t.color : "rgba(255,255,255,0.1)",
-                  boxShadow: on ? `0 0 20px ${t.color}66` : undefined,
+                  boxShadow: on ? `0 0 20px ${mix(t.color, 40)}` : undefined,
                 }}
                 className={`flex items-center gap-3 border bg-black/60 py-2 pl-2 pr-6 transition hover:bg-white/5 ${
                   on ? "" : "opacity-60 hover:opacity-100"
@@ -196,7 +217,7 @@ export default function NewLocalGamePage() {
 
       {/* main character-select panel */}
       <div
-        style={{ clipPath: clip(22), borderColor: `${theme.color}55` }}
+        style={{ clipPath: clip(22), borderColor: mix(theme.color, 33) }}
         className="relative border bg-black/70 p-5 backdrop-blur-sm md:p-8"
       >
         <div
@@ -211,7 +232,7 @@ export default function NewLocalGamePage() {
             <div
               className="relative mx-auto aspect-[3/4] w-full max-w-[340px]"
               style={{
-                filter: `drop-shadow(0 0 22px ${theme.color}88)`,
+                filter: `drop-shadow(0 0 22px ${mix(theme.color, 53)})`,
               }}
             >
               <div
@@ -242,7 +263,7 @@ export default function NewLocalGamePage() {
                   aria-hidden
                   className="absolute inset-x-0 h-16"
                   style={{
-                    background: `linear-gradient(to bottom, transparent, ${theme.color}33, transparent)`,
+                    background: `linear-gradient(to bottom, transparent, ${mix(theme.color, 20)}, transparent)`,
                   }}
                   initial={{ top: "-20%" }}
                   animate={{ top: "110%" }}
@@ -297,7 +318,10 @@ export default function NewLocalGamePage() {
                 value={active.name}
                 maxLength={24}
                 onChange={(e) => update(seat, { name: e.target.value })}
-                style={{ clipPath: clip(10), borderColor: `${theme.color}88` }}
+                style={{
+                  clipPath: clip(10),
+                  borderColor: mix(theme.color, 53),
+                }}
                 className="w-full border bg-black/60 px-4 py-3 text-lg font-bold text-white outline-none transition focus:bg-black"
               />
             </label>
@@ -384,8 +408,8 @@ export default function NewLocalGamePage() {
               })}
             </div>
 
-            <details className="group border-t border-white/10 pt-4">
-              <summary className="flex cursor-pointer list-none items-center gap-2 font-mono text-xs tracking-[0.3em] text-muted-foreground transition hover:text-white">
+            <details className="group border-t border-cyan-400/20 pt-4">
+              <summary className="flex cursor-pointer list-none items-center gap-2 font-mono text-xs tracking-[0.3em] text-muted-foreground transition hover:text-cyan-300">
                 <ChevronRight className="h-4 w-4 transition group-open:rotate-90" />
                 CUSTOM WIN CONDITIONS
               </summary>
@@ -407,9 +431,9 @@ export default function NewLocalGamePage() {
         onClick={() => void start()}
         style={{
           clipPath: clip(14),
-          boxShadow: "0 0 30px rgba(34,211,238,0.5)",
+          boxShadow: `0 0 30px ${mix(ACCENT, 50)}`,
         }}
-        className="group relative inline-flex items-center gap-3 bg-gradient-to-r from-cyan-400 via-sky-400 to-fuchsia-500 px-10 py-4 text-lg font-black uppercase tracking-widest text-black transition hover:brightness-110 disabled:opacity-60"
+        className="accent-gradient-bg group relative inline-flex items-center gap-3 px-10 py-4 text-lg font-black uppercase tracking-widest text-black transition hover:brightness-110 disabled:opacity-60"
       >
         {busy ? "Starting…" : "Start game"}
         <ChevronRight
