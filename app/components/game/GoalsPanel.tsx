@@ -17,12 +17,15 @@ function Row({
   return (
     <li className="flex items-center gap-2 text-sm">
       {ok ? (
-        <Check size={14} className="shrink-0 text-emerald-500" />
+        <Check
+          size={14}
+          className="shrink-0 text-emerald-400 drop-shadow-[0_0_6px_rgb(52,211,153)]"
+        />
       ) : (
         <X size={14} className="shrink-0 text-red-500" />
       )}
-      <span className="font-medium">{label}</span>
-      <span className="ml-auto text-xs text-muted-foreground">{detail}</span>
+      <span className="font-medium text-white">{label}</span>
+      <span className="ml-auto text-xs text-cyan-300/80">{detail}</span>
     </li>
   );
 }
@@ -34,14 +37,14 @@ export function GoalsPanel() {
   const g = evaluateGoals(viewed);
 
   return (
-    <div className="rounded-2xl border bg-card p-4">
+    <div className="accent-card rounded-2xl border border-cyan-400/40 bg-black/40 p-4 shadow-[0_0_20px_var(--accent-400)] backdrop-blur">
       <div className="mb-2 flex items-center justify-between">
-        <h3 className="font-bold">Goals</h3>
+        <h3 className="accent-gradient-text font-bold">Goals</h3>
         {core.players.length > 1 && (
           <select
             value={viewed.seat}
             onChange={(e) => setSeat(Number(e.target.value))}
-            className="rounded border bg-background px-2 py-1 text-xs"
+            className="rounded border border-cyan-400/40 bg-black/60 px-2 py-1 text-xs text-cyan-100 outline-none transition focus:border-cyan-400 focus:shadow-[0_0_12px_var(--accent-400)]"
           >
             {core.players.map((p) => (
               <option key={p.seat} value={p.seat}>
@@ -84,7 +87,7 @@ export function GoalsPanel() {
           detail={`${g.education.current} / ${g.education.target}`}
         />
       </ul>
-      <p className="mt-2 text-[11px] text-muted-foreground">
+      <p className="mt-2 text-[11px] text-cyan-300/70">
         Winning jobs: {viewed.goals.winningJobs.join(", ")}
       </p>
     </div>

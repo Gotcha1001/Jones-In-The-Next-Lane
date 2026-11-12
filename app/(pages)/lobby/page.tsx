@@ -14,6 +14,18 @@ import { DEFAULT_GOALS } from "@/lib/game/engine";
 import type { Goals } from "@/lib/game/validators";
 import { GoalsEditor } from "@/app/components/GoalsEditor";
 
+// Inline style on purpose: html[data-glow="off"] strips any [style*="text-shadow"]
+const GLOW_TEXT = {
+  textShadow:
+    "0 0 12px color-mix(in oklab, var(--accent-400) 70%, transparent)",
+} as const;
+
+const BTN_ACCENT =
+  "accent-gradient-bg border-0 text-white shadow-[0_0_18px_-4px_color-mix(in_oklab,var(--accent-400)_70%,transparent)] hover:brightness-110 disabled:shadow-none";
+
+const FIELD =
+  "rounded-xl border border-cyan-400/30 bg-background px-4 py-3 text-sm outline-none transition focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400";
+
 export default function LobbyPage() {
   const router = useRouter();
   const rooms = useQuery(api.rooms.listOpenRooms);
@@ -61,13 +73,18 @@ export default function LobbyPage() {
     <div className="mx-auto max-w-4xl">
       <div className="mb-8 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
         <div>
-          <h1 className="text-2xl font-bold">Game lobby</h1>
+          <h1
+            className="accent-gradient-text text-2xl font-bold"
+            style={GLOW_TEXT}
+          >
+            Game lobby
+          </h1>
           <p className="text-muted-foreground">
             Join an open room or host your own.
           </p>
         </div>
         <Button
-          className="gap-2 bg-indigo-600 text-white hover:bg-indigo-500"
+          className={`gap-2 ${BTN_ACCENT}`}
           onClick={() => setShowCreate((s) => !s)}
         >
           <Plus size={18} /> Create room
@@ -80,9 +97,11 @@ export default function LobbyPage() {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            className="mb-6 overflow-hidden rounded-2xl border bg-card p-6 shadow-sm"
+            className="accent-card mb-6 overflow-hidden rounded-2xl bg-card p-6"
           >
-            <h2 className="mb-4 text-lg font-semibold">New room</h2>
+            <h2 className="mb-4 text-lg font-semibold text-cyan-300">
+              New room
+            </h2>
             <div className="flex flex-col gap-3 sm:flex-row">
               <input
                 value={name}
@@ -90,12 +109,12 @@ export default function LobbyPage() {
                 onKeyDown={(e) => e.key === "Enter" && void onCreate()}
                 maxLength={40}
                 placeholder="Room name (e.g. Friday Night Race)"
-                className="flex-1 rounded-xl border bg-background px-4 py-3 text-sm outline-none"
+                className={`flex-1 ${FIELD}`}
               />
               <select
                 value={maxPlayers}
                 onChange={(e) => setMaxPlayers(Number(e.target.value))}
-                className="rounded-xl border bg-background px-4 py-3 text-sm outline-none"
+                className={FIELD}
               >
                 {Array.from(
                   { length: MAX_PLAYERS - MIN_PLAYERS + 1 },
@@ -108,7 +127,7 @@ export default function LobbyPage() {
               </select>
             </div>
             <details className="mt-4">
-              <summary className="cursor-pointer text-sm text-muted-foreground">
+              <summary className="cursor-pointer text-sm text-muted-foreground transition hover:text-cyan-300">
                 Win conditions (optional)
               </summary>
               <div className="mt-3">
@@ -116,7 +135,7 @@ export default function LobbyPage() {
               </div>
             </details>
             <Button
-              className="mt-4 bg-indigo-600 text-white hover:bg-indigo-500"
+              className={`mt-4 ${BTN_ACCENT}`}
               disabled={busy}
               onClick={() => void onCreate()}
             >
@@ -127,10 +146,10 @@ export default function LobbyPage() {
       </AnimatePresence>
 
       {rooms === undefined && (
-        <p className="text-muted-foreground">Loading rooms…</p>
+        <p className="text-cyan-300/70">Loading rooms…</p>
       )}
       {rooms !== undefined && rooms.length === 0 && (
-        <div className="rounded-2xl border border-dashed p-10 text-center text-muted-foreground">
+        <div className="rounded-2xl border border-dashed border-cyan-400/40 bg-cyan-500/5 p-10 text-center text-muted-foreground">
           No open rooms yet — create one and invite your friends!
         </div>
       )}
@@ -139,24 +158,25 @@ export default function LobbyPage() {
           <motion.div
             key={r._id}
             layout
-            className="flex items-center justify-between rounded-2xl border bg-card p-4 shadow-sm"
+            className="accent-card flex items-center justify-between rounded-2xl bg-card p-4 transition-colors hover:bg-cyan-500/5"
           >
             <div>
-              <p className="font-semibold">{r.name}</p>
+              <p className="font-semibold text-cyan-300">{r.name}</p>
               <p className="flex items-center gap-3 text-xs text-muted-foreground">
                 <span className="flex items-center gap-1">
-                  <Users size={12} /> {r.playerCount}/{r.maxPlayers}
+                  <Users size={12} className="text-cyan-400" /> {r.playerCount}/
+                  {r.maxPlayers}
                 </span>
                 <span>Host: {r.hostName}</span>
                 <span className="flex items-center gap-1">
-                  <Clock size={12} />{" "}
+                  <Clock size={12} className="text-cyan-400" />{" "}
                   {new Date(r.createdAt).toLocaleTimeString()}
                 </span>
               </p>
             </div>
             <Button
               variant="outline"
-              className="gap-2"
+              className="gap-2 border-cyan-400/40 text-cyan-300 hover:border-fuchsia-400 hover:bg-fuchsia-500/10 hover:text-fuchsia-300"
               disabled={r.playerCount >= r.maxPlayers}
               onClick={() => void onJoin(r._id)}
             >

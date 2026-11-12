@@ -25,7 +25,7 @@ export default function Navbar() {
           href="/"
           className="group flex items-center gap-2 text-lg font-black uppercase tracking-tight"
         >
-          <span className="text-2xl drop-shadow-[0_0_8px_rgba(34,211,238,0.8)]">
+          <span className="text-2xl drop-shadow-[0_0_8px_var(--accent-400)]">
             🏎️
           </span>
           <span
@@ -59,7 +59,8 @@ export default function Navbar() {
             href="/sign-up"
             style={{
               clipPath: CUT,
-              boxShadow: "0 0 18px rgba(34,211,238,0.45)",
+              boxShadow:
+                "0 0 18px color-mix(in oklab, var(--accent-400) 45%, transparent)",
             }}
             className="bg-gradient-to-r from-cyan-400 to-fuchsia-500 px-4 py-2 font-mono text-xs font-black uppercase tracking-widest text-black transition hover:brightness-110"
           >
@@ -67,7 +68,7 @@ export default function Navbar() {
           </Link>
         </SignedOut>
         <SignedIn>
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full shadow-[0_0_14px_rgba(232,121,249,0.6)] ring-2 ring-fuchsia-400/70">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full shadow-[0_0_14px_color-mix(in_oklab,var(--accent-alt)_60%,transparent)] ring-2 ring-fuchsia-400/70">
             <UserButton
               appearance={{
                 elements: {

@@ -91,7 +91,7 @@ export function WaitingRoom({ view }: { view: RoomView }) {
             <motion.div
               key={m._id}
               layout
-              className="flex items-center gap-3 rounded-2xl border bg-card p-4"
+              className="flex items-center gap-3 rounded-2xl border bg-card p-4 accent-card"
             >
               <PlayerAvatar src={m.avatar} name={m.name} size={48} />
               <div className="min-w-0 flex-1">
@@ -116,7 +116,7 @@ export function WaitingRoom({ view }: { view: RoomView }) {
           {Array.from({ length: room.maxPlayers - members.length }, (_, i) => (
             <div
               key={`empty-${i}`}
-              className="rounded-2xl border border-dashed p-4 text-sm text-muted-foreground"
+              className="rounded-2xl border border-dashed border-cyan-400/20 p-4 text-sm text-muted-foreground"
             >
               Waiting for a player…
             </div>
@@ -124,7 +124,7 @@ export function WaitingRoom({ view }: { view: RoomView }) {
         </div>
 
         {me && (
-          <div className="rounded-2xl border bg-card p-4">
+          <div className="rounded-2xl border bg-card p-4 accent-card">
             <p className="mb-3 text-sm font-semibold">Pick your avatar</p>
             <div className="flex max-h-40 flex-wrap gap-2 overflow-y-auto">
               {AVATARS.map((src) => {
@@ -141,8 +141,10 @@ export function WaitingRoom({ view }: { view: RoomView }) {
                       )
                     }
                     className={`rounded-full ring-2 transition ${
-                      me.avatar === src ? "ring-indigo-500" : "ring-transparent"
-                    } ${taken ? "opacity-30" : "hover:ring-indigo-300"}`}
+                      me.avatar === src
+                        ? "ring-cyan-400 shadow-[0_0_12px_color-mix(in_oklab,var(--accent-400)_50%,transparent)]"
+                        : "ring-transparent"
+                    } ${taken ? "opacity-30" : "hover:ring-cyan-300/60"}`}
                   >
                     <PlayerAvatar src={src} name="?" size={40} />
                   </button>
@@ -170,7 +172,7 @@ export function WaitingRoom({ view }: { view: RoomView }) {
           )}
           {isHost && (
             <Button
-              className="gap-2 bg-indigo-600 text-white hover:bg-indigo-500"
+              className="gap-2 bg-gradient-to-r from-cyan-400 to-fuchsia-500 text-black shadow-[0_0_20px_color-mix(in_oklab,var(--accent-400)_45%,transparent)] hover:brightness-110"
               disabled={!allReady}
               onClick={() => void onStart()}
             >

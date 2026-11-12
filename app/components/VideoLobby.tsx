@@ -101,13 +101,13 @@ function ParticipantTile({ state }: { state: ParticipantState }) {
       initial={{ opacity: 0, scale: 0.85 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.85 }}
-      className="relative h-[90px] w-[120px] shrink-0 overflow-hidden rounded-xl border border-white/10 bg-black/60"
+      className="relative h-[90px] w-[120px] shrink-0 overflow-hidden rounded-xl border border-cyan-400/20 bg-black/60 shadow-[0_0_16px_color-mix(in_oklab,var(--accent-400)_20%,transparent)]"
     >
       {videoTrack ? (
         <TrackMedia track={videoTrack} kind="video" muted={isLocal} />
       ) : (
-        <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-indigo-900/50 to-black/80">
-          <div className="flex h-9 w-9 select-none items-center justify-center rounded-full bg-indigo-600 text-sm font-bold text-white">
+        <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-cyan-900/40 to-black/80">
+          <div className="flex h-9 w-9 select-none items-center justify-center rounded-full bg-cyan-600 text-sm font-bold text-white shadow-[0_0_10px_color-mix(in_oklab,var(--accent-400)_50%,transparent)]">
             {name.charAt(0).toUpperCase()}
           </div>
         </div>
@@ -261,6 +261,7 @@ export function VideoLobby({
     connState === ConnectionState.Connecting ||
     connState === ConnectionState.Reconnecting;
 
+  // Semantic on/off colours stay — mic/camera state should remain clear
   const toggleClass = (on: boolean): string =>
     `flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-semibold transition-all ${
       on
@@ -269,14 +270,14 @@ export function VideoLobby({
     }`;
 
   return (
-    <div className="overflow-hidden rounded-2xl border bg-card/60 backdrop-blur-sm">
+    <div className="overflow-hidden rounded-2xl border bg-card/60 backdrop-blur-sm accent-card">
       <button
         type="button"
         onClick={() => setCollapsed((v) => !v)}
-        className="flex w-full items-center justify-between px-4 py-2.5 transition-all hover:bg-muted/50"
+        className="flex w-full items-center justify-between px-4 py-2.5 transition-all hover:bg-cyan-400/5"
       >
         <span className="flex items-center gap-2">
-          <Video size={14} className="text-emerald-500" />
+          <Video size={14} className="text-cyan-400" />
           <span className="text-xs font-bold uppercase tracking-widest">
             Video chat
           </span>

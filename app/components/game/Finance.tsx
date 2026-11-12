@@ -5,6 +5,13 @@ import { INTEREST_RATE } from "@/lib/game/engine";
 import { useGame } from "./GameContext";
 import { ActionButton, ScreenCard } from "./ui";
 
+const ROW =
+  "accent-card flex items-center justify-between gap-2 rounded-xl p-3 transition hover:border-cyan-400/70 hover:shadow-[0_0_14px_var(--accent-400)]";
+const NAME = "font-medium text-white";
+const META = "text-xs text-cyan-300/80";
+const INPUT =
+  "rounded-lg border border-cyan-400/40 bg-black/50 text-white outline-none transition placeholder:text-cyan-300/50 focus:border-cyan-400 focus:shadow-[0_0_12px_var(--accent-400)]";
+
 export function Bank() {
   const { player, core } = useGame();
   const [amount, setAmount] = useState(50);
@@ -18,12 +25,18 @@ export function Bank() {
         title="Python Bank"
         subtitle={`Savings earn ${INTEREST_RATE * 100}% interest, collectable once per week.`}
       >
-        <div className="mb-3 flex gap-6 text-sm">
+        <div className="mb-3 flex gap-6 text-sm text-cyan-100">
           <p>
-            Cash: <strong>${player.cash.toLocaleString()}</strong>
+            Cash:{" "}
+            <strong className="accent-gradient-text">
+              ${player.cash.toLocaleString()}
+            </strong>
           </p>
           <p>
-            Savings: <strong>${savings.toLocaleString()}</strong>
+            Savings:{" "}
+            <strong className="accent-gradient-text">
+              ${savings.toLocaleString()}
+            </strong>
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -34,7 +47,7 @@ export function Bank() {
             onChange={(e) =>
               setAmount(Math.max(1, Number(e.target.value) || 1))
             }
-            className="w-28 rounded-lg border bg-background px-3 py-1.5 text-sm"
+            className={`w-28 px-3 py-1.5 text-sm ${INPUT}`}
           />
           <ActionButton
             action={{ type: "deposit", amount }}
@@ -63,7 +76,7 @@ export function Bank() {
         title="Shares market"
         subtitle="Prices move after every full round of turns."
       >
-        <label className="mb-3 block text-sm">
+        <label className="mb-3 block text-sm text-cyan-100">
           Quantity:{" "}
           <input
             type="number"
@@ -72,24 +85,21 @@ export function Bank() {
             onChange={(e) =>
               setQty(Math.max(1, Math.floor(Number(e.target.value)) || 1))
             }
-            className="w-20 rounded-lg border bg-background px-2 py-1"
+            className={`w-20 px-2 py-1 ${INPUT}`}
           />
         </label>
         <div className="grid gap-2">
           {core.market.map((s) => {
             const owned = player.shares.find((h) => h.id === s.id)?.owned ?? 0;
             return (
-              <div
-                key={s.id}
-                className="flex items-center justify-between gap-2 rounded-xl border p-3"
-              >
+              <div key={s.id} className={ROW}>
                 <div>
-                  <p className="font-medium">{s.name}</p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className={NAME}>{s.name}</p>
+                  <p className={META}>
                     ${s.price.toFixed(2)}{" "}
                     <span
                       className={
-                        s.change >= 0 ? "text-emerald-500" : "text-red-500"
+                        s.change >= 0 ? "text-emerald-400" : "text-red-500"
                       }
                     >
                       {s.change >= 0 ? "▲" : "▼"}{" "}
