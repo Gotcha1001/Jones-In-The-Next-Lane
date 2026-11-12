@@ -96,12 +96,15 @@ export function Stat({
 /** How much of the current week is left. Turns amber, then red, as it runs down. */
 export function WeekMeter({ compact = false }: { compact?: boolean }) {
   const { player } = useGame();
+  // The engine stores time *remaining*; the meter shows time *used* so it
+  // fills forward as the week goes on and every action adds to it.
   const left = Math.max(0, Math.min(WEEK_LENGTH, player.timeLeft));
-  const pct = (left / WEEK_LENGTH) * 100;
+  const used = WEEK_LENGTH - left;
+  const pct = (used / WEEK_LENGTH) * 100;
   const tone =
-    pct > 50
+    pct < 50
       ? "from-cyan-400 to-sky-500"
-      : pct > 20
+      : pct < 80
         ? "from-amber-300 to-orange-500"
         : "from-red-400 to-red-600";
   return (
@@ -113,14 +116,14 @@ export function WeekMeter({ compact = false }: { compact?: boolean }) {
       aria-label="Time left this week"
       aria-valuemin={0}
       aria-valuemax={WEEK_LENGTH}
-      aria-valuenow={Math.round(left)}
+      aria-valuenow={Math.round(used)}
     >
       <div className="mb-1 flex items-center justify-between text-xs">
         <span className="font-semibold uppercase tracking-widest text-cyan-300/80">
           ⏱ Week {player.week}
         </span>
         <span className="font-mono text-cyan-100">
-          {Math.round(left)}/{WEEK_LENGTH} left
+          {Math.round(used)}/{WEEK_LENGTH} used
         </span>
       </div>
       <div className="h-2.5 overflow-hidden rounded-full bg-white/10">

@@ -88,8 +88,8 @@ export function StatsPanel() {
       {/* Bars keep their own colours on purpose: they're how you tell six stats apart */}
       <div className="space-y-2">
         <Stat
-          label="Time left"
-          value={player.timeLeft}
+          label="Time used"
+          value={100 - player.timeLeft}
           max={100}
           color="bg-sky-500"
         />
