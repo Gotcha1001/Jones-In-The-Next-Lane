@@ -160,219 +160,233 @@ export default function CityMap({
       : `You are at ${PLACE_BY_ID[currentLocationId].name} – tap it to go inside, or tap another place to walk there`;
 
   return (
-    <section
-      aria-label="City map"
-      className={`relative mx-auto h-[72vh] min-h-[480px] w-full max-w-[1500px] overflow-hidden rounded-2xl bg-gray-900 ring-1 ring-cyan-400/40 shadow-[0_0_30px_var(--accent-400)] lg:h-[calc(100vh-8rem)] ${className}`}
-      style={{
-        backgroundImage: "url('/logo1.jpg')",
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-      }}
-    >
-      {/* Stone overlay + road */}
-      <img
-        src="/stone2.png"
-        alt=""
-        aria-hidden
-        className="pointer-events-none absolute inset-0 z-0 h-full w-full object-cover opacity-90"
-      />
-      <div aria-hidden className="pointer-events-none absolute inset-0 z-[5]">
-        {stones.map((stone) => (
-          <img
-            key={stone.key}
-            src="/stone.png"
-            alt=""
-            className="absolute object-contain"
-            style={{
-              left: `${stone.x}%`,
-              top: `${stone.y}%`,
-              width: `${stone.size}%`,
-              aspectRatio: "1",
-              opacity: stone.opacity,
-              transform: `translate(-50%, -50%) rotate(${stone.rotation}deg)`,
-            }}
-          />
-        ))}
-      </div>
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 z-[6] bg-[radial-gradient(ellipse_at_center,transparent_45%,rgba(0,0,0,0.55)_100%)]"
-      />
-
-      {/* HUD */}
-      <div className="absolute inset-x-3 top-3 z-40 flex items-start justify-between gap-3">
-        <p
-          aria-live="polite"
-          className="flex max-w-[80%] items-center gap-2 rounded-full border border-cyan-400/40 bg-black/60 px-4 py-2 text-xs font-medium text-cyan-50 shadow-[0_0_14px_var(--accent-400)] backdrop-blur sm:text-sm"
-        >
-          <MapPin className="h-4 w-4 shrink-0 text-cyan-400" aria-hidden />
-          <span>{status}</span>
-        </p>
-        <SoundToggle />
-      </div>
-
-      {/* Big hero avatar in the middle */}
-      <motion.div
-        className="pointer-events-none absolute left-1/2 top-1/2 z-20 -translate-x-1/2 -translate-y-1/2"
-        animate={{ opacity: 1, scale: walking ? 0.95 : 1 }}
-        transition={{ duration: 0.4 }}
+    <>
+      {/* Mobile: status banner sits above the map so it never covers places */}
+      <p
+        aria-live="polite"
+        className="mb-2 flex items-center gap-2 rounded-2xl border border-cyan-400/40 bg-black/60 px-4 py-2 text-xs font-medium text-cyan-50 shadow-[0_0_14px_var(--accent-400)] backdrop-blur md:hidden"
       >
-        {/*
+        <MapPin className="h-4 w-4 shrink-0 text-cyan-400" aria-hidden />
+        <span>{status}</span>
+      </p>
+      <section
+        aria-label="City map"
+        className={`relative mx-auto h-[72vh] min-h-[480px] w-full max-w-[1500px] overflow-hidden rounded-2xl bg-gray-900 ring-1 ring-cyan-400/40 shadow-[0_0_30px_var(--accent-400)] lg:h-[calc(100vh-8rem)] ${className}`}
+        style={{
+          backgroundImage: "url('/logo1.jpg')",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+        }}
+      >
+        {/* Stone overlay + road */}
+        <img
+          src="/stone2.png"
+          alt=""
+          aria-hidden
+          className="pointer-events-none absolute inset-0 z-0 h-full w-full object-cover opacity-90"
+        />
+        <div aria-hidden className="pointer-events-none absolute inset-0 z-[5]">
+          {stones.map((stone) => (
+            <img
+              key={stone.key}
+              src="/stone.png"
+              alt=""
+              className="absolute object-contain"
+              style={{
+                left: `${stone.x}%`,
+                top: `${stone.y}%`,
+                width: `${stone.size}%`,
+                aspectRatio: "1",
+                opacity: stone.opacity,
+                transform: `translate(-50%, -50%) rotate(${stone.rotation}deg)`,
+              }}
+            />
+          ))}
+        </div>
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 z-[6] bg-[radial-gradient(ellipse_at_center,transparent_45%,rgba(0,0,0,0.55)_100%)]"
+        />
+
+        {/* HUD */}
+        <div className="absolute inset-x-3 top-3 z-40 flex items-start justify-end gap-3 md:justify-between">
+          <p
+            aria-live="polite"
+            className="hidden max-w-[80%] md:flex items-center gap-2 rounded-full border border-cyan-400/40 bg-black/60 px-4 py-2 text-sm font-medium text-cyan-50 shadow-[0_0_14px_var(--accent-400)] backdrop-blur"
+          >
+            <MapPin className="h-4 w-4 shrink-0 text-cyan-400" aria-hidden />
+            <span>{status}</span>
+          </p>
+          <SoundToggle />
+        </div>
+
+        {/* Big hero avatar in the middle */}
+        <motion.div
+          className="pointer-events-none absolute left-1/2 top-1/2 z-20 -translate-x-1/2 -translate-y-1/2"
+          animate={{ opacity: 1, scale: walking ? 0.95 : 1 }}
+          transition={{ duration: 0.4 }}
+        >
+          {/*
           While walking the portrait stays fully visible and sways from side
           to side (with a little step bounce) instead of fading out.
         */}
-        <motion.div
-          animate={
-            walking && !reduceMotion
-              ? { x: [-14, 14], rotate: [-3, 3], y: [0, -8] }
-              : { x: 0, rotate: 0, y: 0 }
-          }
-          transition={
-            walking && !reduceMotion
-              ? {
-                  x: {
-                    duration: 0.5,
-                    repeat: Infinity,
-                    repeatType: "mirror",
-                    ease: "easeInOut",
-                  },
-                  rotate: {
-                    duration: 0.5,
-                    repeat: Infinity,
-                    repeatType: "mirror",
-                    ease: "easeInOut",
-                  },
-                  y: {
-                    duration: 0.25,
-                    repeat: Infinity,
-                    repeatType: "mirror",
-                    ease: "easeOut",
-                  },
-                }
-              : { duration: 0.3 }
-          }
-        >
-          <img
-            src={player.avatarUrl}
-            alt={player.name}
-            className="h-52 w-36 rounded-xl border-4 border-cyan-400 object-cover shadow-[0_0_60px_var(--accent-400)] md:h-72 md:w-48 lg:h-[44vh] lg:w-64"
-          />
-          <div className="mt-2 rounded bg-gradient-to-r from-cyan-500 via-cyan-900 to-black px-3 py-1 text-center font-semibold text-white">
-            {player.name}
-          </div>
-        </motion.div>
-      </motion.div>
-
-      {/* Destination pulse */}
-      {pulseId && <DestinationPulse id={pulseId} />}
-
-      {/* Walking avatar */}
-      {walking && frame && (
-        <div
-          className="absolute z-30"
-          style={{
-            left: `${frame.position.x}%`,
-            top: `${frame.position.y}%`,
-            transform: "translate(-50%, -50%)",
-          }}
-        >
           <motion.div
-            animate={{ y: [0, -8, 0] }}
-            transition={{ duration: 0.45, repeat: Infinity, ease: "easeInOut" }}
-            className="relative h-14 w-14 rounded-full border-2 border-cyan-400 bg-cyan-700 shadow-[0_0_18px_var(--accent-400)] md:h-16 md:w-16"
+            animate={
+              walking && !reduceMotion
+                ? { x: [-14, 14], rotate: [-3, 3], y: [0, -8] }
+                : { x: 0, rotate: 0, y: 0 }
+            }
+            transition={
+              walking && !reduceMotion
+                ? {
+                    x: {
+                      duration: 0.5,
+                      repeat: Infinity,
+                      repeatType: "mirror",
+                      ease: "easeInOut",
+                    },
+                    rotate: {
+                      duration: 0.5,
+                      repeat: Infinity,
+                      repeatType: "mirror",
+                      ease: "easeInOut",
+                    },
+                    y: {
+                      duration: 0.25,
+                      repeat: Infinity,
+                      repeatType: "mirror",
+                      ease: "easeOut",
+                    },
+                  }
+                : { duration: 0.3 }
+            }
           >
             <img
               src={player.avatarUrl}
               alt={player.name}
-              className="h-full w-full rounded-full object-cover"
+              className="h-52 w-36 rounded-xl border-4 border-cyan-400 object-cover shadow-[0_0_60px_var(--accent-400)] md:h-72 md:w-48 lg:h-[44vh] lg:w-64"
             />
+            <div className="mt-2 rounded bg-gradient-to-r from-cyan-500 via-cyan-900 to-black px-3 py-1 text-center font-semibold text-white">
+              {player.name}
+            </div>
           </motion.div>
-          <div className="mt-1 rounded border border-cyan-400/30 bg-black/80 px-2 py-0.5 text-center text-xs text-cyan-50">
-            {player.name}
-          </div>
-        </div>
-      )}
+        </motion.div>
 
-      {/* Place markers */}
-      {PLACES.map((place) => {
-        const isCurrent = !walking && place.id === currentLocationId;
-        const isTarget = walk?.to === place.id || pending === place.id;
-        const labelAbove = place.mapY > 75;
-        const here = otherPlayers.filter((o) => o.locationId === place.id);
+        {/* Destination pulse */}
+        {pulseId && <DestinationPulse id={pulseId} />}
 
-        const wrapperStyle: CSSProperties = {
-          left: `${place.mapX}%`,
-          top: `${place.mapY}%`,
-          transform: "translate(-50%, -50%)",
-          zIndex: isCurrent || isTarget ? 15 : 10,
-        };
-
-        return (
-          <div key={place.id} className="absolute" style={wrapperStyle}>
-            <button
-              type="button"
-              onClick={() => handleMarker(place.id)}
-              disabled={disabled || walking}
-              aria-label={`${isCurrent ? "Enter" : "Walk to"} ${place.name}`}
-              className={`group flex items-center gap-1.5 focus:outline-none disabled:cursor-not-allowed ${
-                labelAbove ? "flex-col-reverse" : "flex-col"
-              }`}
+        {/* Walking avatar */}
+        {walking && frame && (
+          <div
+            className="absolute z-30"
+            style={{
+              left: `${frame.position.x}%`,
+              top: `${frame.position.y}%`,
+              transform: "translate(-50%, -50%)",
+            }}
+          >
+            <motion.div
+              animate={{ y: [0, -8, 0] }}
+              transition={{
+                duration: 0.45,
+                repeat: Infinity,
+                ease: "easeInOut",
+              }}
+              className="relative h-14 w-14 rounded-full border-2 border-cyan-400 bg-cyan-700 shadow-[0_0_18px_var(--accent-400)] md:h-16 md:w-16"
             >
-              <motion.span
-                className={`relative block rounded-full ${
-                  isCurrent
-                    ? "bg-cyan-400 shadow-[0_0_28px_var(--accent-400)]"
-                    : isTarget
-                      ? "bg-cyan-200 shadow-[0_0_22px_var(--accent-400)]"
-                      : "bg-cyan-800 shadow-[0_0_12px_var(--accent-400)]"
-                }`}
-                style={{ width: MARKER_SIZE, height: MARKER_SIZE }}
-                whileHover={disabled || walking ? undefined : { scale: 1.1 }}
-                whileTap={disabled || walking ? undefined : { scale: 0.95 }}
-              >
-                <img
-                  src={place.image}
-                  alt=""
-                  className="absolute inset-1 h-[calc(100%-0.5rem)] w-[calc(100%-0.5rem)] rounded-full object-cover"
-                />
-                <span
-                  className={`absolute inset-0 rounded-full group-focus-visible:ring-4 group-focus-visible:ring-cyan-200 ${
-                    isCurrent
-                      ? "animate-pulse border-4 border-cyan-300"
-                      : isTarget
-                        ? "border-4 border-cyan-200"
-                        : "border-2 border-cyan-400/70"
-                  }`}
-                />
-                {isCurrent && (
-                  <img
-                    src={player.avatarUrl}
-                    alt=""
-                    className="absolute -right-2 -top-2 h-9 w-9 rounded-full border-2 border-cyan-400 object-cover shadow-[0_0_12px_var(--accent-400)] md:h-11 md:w-11"
-                  />
-                )}
-                {here.length > 0 && (
-                  <span className="absolute -bottom-2 -left-2 flex -space-x-2">
-                    {here.slice(0, 3).map((other) => (
-                      <img
-                        key={other.id}
-                        src={other.avatarUrl}
-                        alt={other.name}
-                        title={other.name}
-                        className="h-7 w-7 rounded-full border-2 border-white object-cover shadow"
-                      />
-                    ))}
-                  </span>
-                )}
-              </motion.span>
-              <span className="rounded border border-cyan-400/40 bg-black/70 px-2 py-1 text-center text-xs font-semibold text-cyan-50 shadow-[0_0_10px_var(--accent-400)] backdrop-blur-sm transition group-hover:border-cyan-400 sm:text-sm">
-                {isCurrent ? `Enter ${place.name} ▸` : place.name}
-              </span>
-            </button>
+              <img
+                src={player.avatarUrl}
+                alt={player.name}
+                className="h-full w-full rounded-full object-cover"
+              />
+            </motion.div>
+            <div className="mt-1 rounded border border-cyan-400/30 bg-black/80 px-2 py-0.5 text-center text-xs text-cyan-50">
+              {player.name}
+            </div>
           </div>
-        );
-      })}
-    </section>
+        )}
+
+        {/* Place markers */}
+        {PLACES.map((place) => {
+          const isCurrent = !walking && place.id === currentLocationId;
+          const isTarget = walk?.to === place.id || pending === place.id;
+          const labelAbove = place.mapY > 75;
+          const here = otherPlayers.filter((o) => o.locationId === place.id);
+
+          const wrapperStyle: CSSProperties = {
+            left: `${place.mapX}%`,
+            top: `${place.mapY}%`,
+            transform: "translate(-50%, -50%)",
+            zIndex: isCurrent || isTarget ? 15 : 10,
+          };
+
+          return (
+            <div key={place.id} className="absolute" style={wrapperStyle}>
+              <button
+                type="button"
+                onClick={() => handleMarker(place.id)}
+                disabled={disabled || walking}
+                aria-label={`${isCurrent ? "Enter" : "Walk to"} ${place.name}`}
+                className={`group flex items-center gap-1.5 focus:outline-none disabled:cursor-not-allowed ${
+                  labelAbove ? "flex-col-reverse" : "flex-col"
+                }`}
+              >
+                <motion.span
+                  className={`relative block rounded-full ${
+                    isCurrent
+                      ? "bg-cyan-400 shadow-[0_0_28px_var(--accent-400)]"
+                      : isTarget
+                        ? "bg-cyan-200 shadow-[0_0_22px_var(--accent-400)]"
+                        : "bg-cyan-800 shadow-[0_0_12px_var(--accent-400)]"
+                  }`}
+                  style={{ width: MARKER_SIZE, height: MARKER_SIZE }}
+                  whileHover={disabled || walking ? undefined : { scale: 1.1 }}
+                  whileTap={disabled || walking ? undefined : { scale: 0.95 }}
+                >
+                  <img
+                    src={place.image}
+                    alt=""
+                    className="absolute inset-1 h-[calc(100%-0.5rem)] w-[calc(100%-0.5rem)] rounded-full object-cover"
+                  />
+                  <span
+                    className={`absolute inset-0 rounded-full group-focus-visible:ring-4 group-focus-visible:ring-cyan-200 ${
+                      isCurrent
+                        ? "animate-pulse border-4 border-cyan-300"
+                        : isTarget
+                          ? "border-4 border-cyan-200"
+                          : "border-2 border-cyan-400/70"
+                    }`}
+                  />
+                  {isCurrent && (
+                    <img
+                      src={player.avatarUrl}
+                      alt=""
+                      className="absolute -right-2 -top-2 h-9 w-9 rounded-full border-2 border-cyan-400 object-cover shadow-[0_0_12px_var(--accent-400)] md:h-11 md:w-11"
+                    />
+                  )}
+                  {here.length > 0 && (
+                    <span className="absolute -bottom-2 -left-2 flex -space-x-2">
+                      {here.slice(0, 3).map((other) => (
+                        <img
+                          key={other.id}
+                          src={other.avatarUrl}
+                          alt={other.name}
+                          title={other.name}
+                          className="h-7 w-7 rounded-full border-2 border-white object-cover shadow"
+                        />
+                      ))}
+                    </span>
+                  )}
+                </motion.span>
+                <span className="rounded border border-cyan-400/40 bg-black/70 px-2 py-1 text-center text-xs font-semibold text-cyan-50 shadow-[0_0_10px_var(--accent-400)] backdrop-blur-sm transition group-hover:border-cyan-400 sm:text-sm">
+                  {isCurrent ? `Enter ${place.name} ▸` : place.name}
+                </span>
+              </button>
+            </div>
+          );
+        })}
+      </section>
+    </>
   );
 }
 

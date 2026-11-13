@@ -36,8 +36,14 @@ export function LocationPanel() {
           <p className="text-xs uppercase tracking-widest text-cyan-300/70">
             {player.name} is at
           </p>
-          <h2 className="accent-gradient-text text-xl font-bold">
-            {loc.emoji} {loc.name}
+          <h2 className="text-xl font-bold">
+            <span className="accent-gradient-text">{loc.emoji}</span>{" "}
+            <span
+              className="accent-gradient-text cy-glitch"
+              data-text={loc.name}
+            >
+              {loc.name}
+            </span>
           </h2>
           <p className="text-sm text-cyan-100/80">{loc.description}</p>
         </div>

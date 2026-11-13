@@ -8,14 +8,7 @@ import { useSharedState } from "@/hooks/useSharedState";
 
 type Filter = "all" | "Male" | "Female";
 
-const CARD =
-  "accent-card rounded-xl p-3 transition hover:border-cyan-400/70 hover:shadow-[0_0_14px_var(--accent-400)]";
-const PILL =
-  "rounded-full border px-3 py-1 text-xs transition hover:border-cyan-400 hover:shadow-[0_0_10px_var(--accent-400)]";
-const PILL_ON =
-  "border-cyan-400 bg-cyan-500/20 text-cyan-100 shadow-[0_0_12px_var(--accent-400)]";
-const PILL_OFF = "border-cyan-400/30 bg-black/40 text-cyan-300/80";
-const META = "text-xs text-cyan-300/80";
+const META = "text-xs leading-relaxed text-cyan-100/70";
 
 export function DatingOffice() {
   const { player } = useGame();
@@ -30,60 +23,113 @@ export function DatingOffice() {
       title="Dating Office"
       subtitle={
         rel.isDating
-          ? `Relationship health ${rel.health}/100 · happiness ${rel.happiness}/100`
+          ? "You're in a relationship. Keep the spark alive."
           : "Find your special someone. (Health 80+ is part of the win goal.)"
       }
     >
+      {/* Relationship vitals */}
+      {rel.isDating && (
+        <div className="cy-card mb-4 grid gap-4 p-4 sm:grid-cols-2">
+          {(
+            [
+              ["Relationship health", rel.health],
+              ["Happiness", rel.happiness],
+            ] as const
+          ).map(([label, value]) => (
+            <div key={label}>
+              <div className="mb-1.5 flex justify-between">
+                <span className="cy-label">{label}</span>
+                <span className="font-mono text-xs text-cyan-100">
+                  {value}/100
+                </span>
+              </div>
+              <div className="cy-meter">
+                <div
+                  className="cy-meter-fill"
+                  style={{ width: `${Math.max(0, Math.min(100, value))}%` }}
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Filter chips */}
       {!rel.isDating && (
-        <div className="mb-3 flex gap-2">
+        <div className="mb-4 flex flex-wrap gap-2">
           {(["all", "Female", "Male"] as const).map((f) => (
             <button
               key={f}
               type="button"
+              data-on={filter === f}
               onClick={() => setFilter(f)}
-              className={`${PILL} ${filter === f ? PILL_ON : PILL_OFF}`}
+              className="cy-pill"
             >
               {f === "all" ? "Everyone" : f}
             </button>
           ))}
         </div>
       )}
-      <div className="grid gap-3 sm:grid-cols-2">
+
+      <div className="grid gap-4 sm:grid-cols-2">
         {list.map((person) => (
-          <div key={person.id} className={CARD}>
-            <div className="mb-2 flex items-center gap-3">
-              <PlayerAvatar src={person.image} name={person.name} size={56} />
-              <div>
-                <p className="font-medium text-white">{person.name}</p>
-                <p className="accent-gradient-text text-xs font-semibold">
-                  {person.compatibility}% compatible
+          <div key={person.id} className="cy-card flex flex-col p-4">
+            <div className="mb-3 flex items-center gap-3">
+              <div className="shrink-0 overflow-hidden rounded-full border-2 border-cyan-400/80 shadow-[0_0_16px_color-mix(in_oklab,var(--accent-400)_65%,transparent)]">
+                <PlayerAvatar src={person.image} name={person.name} size={56} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-base font-bold text-white">
+                  {person.name}
                 </p>
+                <p className="cy-label mb-1">
+                  <span className="accent-gradient-text font-bold">
+                    {person.compatibility}%
+                  </span>{" "}
+                  compatible
+                </p>
+                <div className="cy-meter" style={{ height: 4 }}>
+                  <div
+                    className="cy-meter-fill"
+                    style={{ width: `${person.compatibility}%` }}
+                  />
+                </div>
               </div>
             </div>
-            <p className={META}>{person.personality}</p>
-            <p className={`mb-2 ${META}`}>{person.interests}</p>
-            {rel.isDating ? (
-              <div className="flex gap-2">
+
+            <p className={META}>
+              <span className="cy-label mr-1.5">Personality</span>
+              {person.personality}
+            </p>
+            <p className={`mb-4 mt-1 ${META}`}>
+              <span className="cy-label mr-1.5">Interests</span>
+              {person.interests}
+            </p>
+
+            <div className="mt-auto flex flex-wrap gap-2">
+              {rel.isDating ? (
+                <>
+                  <ActionButton
+                    action={{ type: "goOnDate", personId: person.id }}
+                    disabled={player.cash < person.datePrice}
+                  >
+                    Date (${person.datePrice})
+                  </ActionButton>
+                  <ActionButton
+                    action={{ type: "breakUp" }}
+                    variant="destructive"
+                  >
+                    Break up
+                  </ActionButton>
+                </>
+              ) : (
                 <ActionButton
-                  action={{ type: "goOnDate", personId: person.id }}
-                  disabled={player.cash < person.datePrice}
+                  action={{ type: "startDating", personId: person.id }}
                 >
-                  Date (${person.datePrice})
+                  Start dating
                 </ActionButton>
-                <ActionButton
-                  action={{ type: "breakUp" }}
-                  variant="destructive"
-                >
-                  Break up
-                </ActionButton>
-              </div>
-            ) : (
-              <ActionButton
-                action={{ type: "startDating", personId: person.id }}
-              >
-                Start dating
-              </ActionButton>
-            )}
+              )}
+            </div>
           </div>
         ))}
       </div>

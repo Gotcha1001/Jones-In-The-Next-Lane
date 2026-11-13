@@ -50,10 +50,12 @@ export function ScreenCard({
   children: ReactNode;
 }) {
   return (
-    <div className="rounded-2xl border bg-card p-4">
-      <h3 className="text-lg font-bold">{title}</h3>
+    <div className="cy-panel p-5 pt-6">
+      <h3 className="cy-title cy-glitch text-xl" data-text={title}>
+        {title}
+      </h3>
       {subtitle && (
-        <p className="mb-3 text-sm text-muted-foreground">{subtitle}</p>
+        <p className="mb-4 mt-1 text-sm text-cyan-100/70">{subtitle}</p>
       )}
       {children}
     </div>
