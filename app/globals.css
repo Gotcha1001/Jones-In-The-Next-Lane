@@ -343,3 +343,272 @@ html.dark,
 .dark body {
   background-color: #000000;
 }
+
+/* ---- clickable things must look clickable (Tailwind v4 resets buttons to
+        cursor:default, so restore the pointer everywhere) ------------------ */
+button:not(:disabled),
+[role="button"]:not([aria-disabled="true"]),
+select:not(:disabled),
+summary,
+label[for],
+input[type="checkbox"]:not(:disabled),
+input[type="radio"]:not(:disabled),
+input[type="range"]:not(:disabled) {
+  cursor: pointer;
+}
+button:disabled,
+[role="button"][aria-disabled="true"],
+select:disabled {
+  cursor: not-allowed;
+}
+
+/* Hide the scrollbar but keep scrolling (wheel / touch / keyboard) working. */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* ==========================================================================
+   CYBERPUNK KIT: reuse these in every place (Dating, Housing, Shops, ...)
+   .cy-panel  big screen container   .cy-card  item card inside a panel
+   .cy-pill   filter / tab chip      .cy-title heading   .cy-label small caps
+   .cy-meter / .cy-meter-fill  neon progress bar
+   Everything follows the accent colour picker.
+   ========================================================================== */
+.cy-panel {
+  position: relative;
+  border: 1px solid color-mix(in oklab, var(--accent-400) 45%, transparent);
+  border-radius: 1rem;
+  background:
+    radial-gradient(
+      600px 220px at 100% 0%,
+      color-mix(in oklab, var(--accent-alt) 10%, transparent),
+      transparent 70%
+    ),
+    linear-gradient(
+      180deg,
+      color-mix(in oklab, var(--accent-500) 7%, #050810),
+      #03050c
+    );
+  box-shadow:
+    0 0 28px -10px color-mix(in oklab, var(--accent-400) 55%, transparent),
+    inset 0 0 40px -30px var(--accent-400);
+}
+/* neon gradient edge along the top */
+.cy-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0 12px auto 12px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--accent-gradient);
+  filter: drop-shadow(0 0 6px var(--accent-400));
+  pointer-events: none;
+}
+/* HUD corner brackets */
+.cy-panel::after,
+.cy-card::after {
+  content: "";
+  position: absolute;
+  inset: 6px;
+  pointer-events: none;
+  opacity: 0.8;
+  background:
+    linear-gradient(var(--accent-400), var(--accent-400)) top left / 14px 2px
+      no-repeat,
+    linear-gradient(var(--accent-400), var(--accent-400)) top left / 2px 14px
+      no-repeat,
+    linear-gradient(var(--accent-400), var(--accent-400)) top right / 14px 2px
+      no-repeat,
+    linear-gradient(var(--accent-400), var(--accent-400)) top right / 2px 14px
+      no-repeat,
+    linear-gradient(var(--accent-400), var(--accent-400)) bottom left / 14px 2px
+      no-repeat,
+    linear-gradient(var(--accent-400), var(--accent-400)) bottom left / 2px 14px
+      no-repeat,
+    linear-gradient(var(--accent-400), var(--accent-400)) bottom right / 14px
+      2px no-repeat,
+    linear-gradient(var(--accent-400), var(--accent-400)) bottom right / 2px
+      14px no-repeat;
+}
+.cy-card::after {
+  inset: 4px;
+  opacity: 0.35;
+  transition: opacity 0.2s;
+}
+.cy-card {
+  position: relative;
+  border: 1px solid color-mix(in oklab, var(--accent-400) 30%, transparent);
+  border-radius: 0.75rem;
+  background:
+    repeating-linear-gradient(
+      0deg,
+      color-mix(in oklab, var(--accent-400) 4%, transparent) 0,
+      color-mix(in oklab, var(--accent-400) 4%, transparent) 1px,
+      transparent 1px,
+      transparent 3px
+    ),
+    linear-gradient(
+      160deg,
+      color-mix(in oklab, var(--accent-500) 10%, #060914),
+      #04060d
+    );
+  transition:
+    transform 0.2s,
+    border-color 0.2s,
+    box-shadow 0.2s;
+}
+.cy-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent-400);
+  box-shadow: 0 0 22px -4px
+    color-mix(in oklab, var(--accent-400) 65%, transparent);
+}
+.cy-card:hover::after {
+  opacity: 1;
+}
+.cy-title {
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent-300);
+  text-shadow: 0 0 12px color-mix(in oklab, var(--accent-400) 75%, transparent);
+}
+.cy-label {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: color-mix(in oklab, var(--accent-300) 80%, transparent);
+}
+.cy-pill {
+  cursor: pointer;
+  border-radius: 9999px;
+  border: 1px solid color-mix(in oklab, var(--accent-400) 35%, transparent);
+  background: rgb(0 0 0 / 0.45);
+  padding: 0.35rem 0.9rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: color-mix(in oklab, var(--accent-300) 85%, transparent);
+  transition: all 0.2s;
+}
+.cy-pill:hover {
+  border-color: var(--accent-400);
+  color: #fff;
+  box-shadow: 0 0 14px -2px
+    color-mix(in oklab, var(--accent-400) 70%, transparent);
+}
+.cy-pill[data-on="true"] {
+  border-color: var(--accent-300);
+  background: var(--accent-gradient);
+  color: #020617;
+  box-shadow: 0 0 16px -2px
+    color-mix(in oklab, var(--accent-400) 80%, transparent);
+}
+.cy-meter {
+  height: 6px;
+  overflow: hidden;
+  border-radius: 9999px;
+  background: rgb(255 255 255 / 0.08);
+}
+.cy-meter-fill {
+  height: 100%;
+  border-radius: 9999px;
+  background: var(--accent-gradient);
+  box-shadow: 0 0 10px color-mix(in oklab, var(--accent-400) 80%, transparent);
+  transition: width 0.5s;
+}
+html[data-glow="off"] .cy-title {
+  text-shadow: none;
+}
+
+/* ---- Glitch heading (same effect as the home page). Needs data-text="<same text>" ---- */
+.cy-glitch {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+}
+.cy-glitch::before,
+.cy-glitch::after {
+  content: attr(data-text);
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0; /* invisible at rest, only flashes during the glitch */
+  text-shadow: none;
+  mix-blend-mode: screen;
+}
+.cy-glitch::before {
+  color: var(--accent-300);
+  animation: cy-glitch-a 5s infinite steps(1);
+}
+.cy-glitch::after {
+  color: var(--accent-alt);
+  animation: cy-glitch-b 5s infinite steps(1);
+}
+@keyframes cy-glitch-a {
+  0%,
+  90%,
+  100% {
+    opacity: 0;
+    transform: translate(0);
+    clip-path: inset(0 0 0 0);
+  }
+  91% {
+    opacity: 1;
+    transform: translate(-5px, 1px);
+    clip-path: inset(8% 0 58% 0);
+  }
+  93% {
+    opacity: 1;
+    transform: translate(4px, -1px);
+    clip-path: inset(62% 0 6% 0);
+  }
+  96% {
+    opacity: 1;
+    transform: translate(-3px, 0);
+    clip-path: inset(30% 0 42% 0);
+  }
+  98% {
+    opacity: 0;
+  }
+}
+@keyframes cy-glitch-b {
+  0%,
+  88%,
+  100% {
+    opacity: 0;
+    transform: translate(0);
+    clip-path: inset(0 0 0 0);
+  }
+  89% {
+    opacity: 1;
+    transform: translate(5px, -1px);
+    clip-path: inset(50% 0 20% 0);
+  }
+  92% {
+    opacity: 1;
+    transform: translate(-4px, 1px);
+    clip-path: inset(12% 0 64% 0);
+  }
+  95% {
+    opacity: 1;
+    transform: translate(3px, 0);
+    clip-path: inset(70% 0 10% 0);
+  }
+  97% {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cy-glitch::before,
+  .cy-glitch::after {
+    animation: none;
+  }
+}

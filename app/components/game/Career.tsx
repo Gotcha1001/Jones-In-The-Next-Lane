@@ -39,7 +39,7 @@ export function University() {
               key={s.id}
               type="button"
               onClick={() => setSubject(s.id)}
-              className={`rounded-xl border p-3 text-left transition-colors ${
+              className={`cursor-pointer rounded-xl border p-3 text-left transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 ${
                 selected
                   ? `border-cyan-400 bg-cyan-500/10 ${GLOW_BOX}`
                   : "border-cyan-400/20 hover:border-cyan-400/60 hover:bg-cyan-500/5"
@@ -71,7 +71,7 @@ export function University() {
           <select
             value={hours}
             onChange={(e) => setHours(Number(e.target.value))}
-            className="rounded border border-cyan-400/40 bg-background px-2 py-1 outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400"
+            className="cursor-pointer rounded-lg border border-cyan-400/50 bg-black/40 px-3 py-1.5 font-mono text-cyan-200 shadow-[0_0_12px_-4px_color-mix(in_oklab,var(--accent-400)_60%,transparent)] outline-none transition-all hover:border-cyan-300 hover:shadow-[0_0_18px_-2px_color-mix(in_oklab,var(--accent-400)_75%,transparent)] focus:border-cyan-300 focus:ring-1 focus:ring-cyan-400"
           >
             {[1, 2, 3, 4, 5, 6, 8, 10].map((h) => (
               <option key={h} value={h}>
@@ -83,6 +83,7 @@ export function University() {
         <ActionButton
           action={{ type: "studySubject", subject, hours }}
           disabled={player.subjects[subject] >= 100}
+          className="px-8"
         >
           Study
         </ActionButton>
