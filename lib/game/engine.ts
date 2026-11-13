@@ -14,7 +14,7 @@
 import { findJob, jobs } from "./data/jobs";
 import { findItem } from "./data/items";
 import { findDatingOption } from "./data/dating";
-import { locations, TRAVEL_TIME } from "./data/locations";
+import { FREE_TRAVEL_CHANCE, locations, TRAVEL_TIME } from "./data/locations";
 import { pickRandomEvent } from "./data/randomEvents";
 import type { EventStat } from "./data/randomEvents";
 import {
@@ -47,6 +47,8 @@ export const WEEK_LENGTH = 100;
 export const INTEREST_RATE = 0.05;
 export const RENT_INTERVAL_WEEKS = 4;
 export const MAX_LOG_ENTRIES = 40;
+/** Time units one "shift" takes (and pays one `job.salary` for). */
+export const SHIFT_TIME = 15;
 
 export const DEFAULT_GOALS: Goals = {
   cash: 10000,
@@ -229,6 +231,7 @@ const REQUIRED_LOCATION: Record<GameAction["type"], LocationId | null> = {
   homeActivity: "apartment",
   studySubject: null, // university or apartment (checked in handler)
   work: "workplace",
+  workRest: "workplace",
   applyJob: "employmentOffice",
   buyItem: "mall",
   buyMeal: "fastFood",
@@ -251,6 +254,7 @@ function applyAction(
   p: PlayerState,
   action: GameAction,
   market: readonly Stock[],
+  rng: () => number,
 ): HandlerResult {
   const required = REQUIRED_LOCATION[action.type];
   if (required && p.location !== required) {
@@ -262,8 +266,16 @@ function applyAction(
   switch (action.type) {
     case "moveTo": {
       if (action.locationId === p.location) return fail("You're already here.");
-      // Not enough time left to get anywhere: the week simply ends (the
-      // engine rolls it over and sends the player home).
+      const name = locations[action.locationId].name;
+      // Sometimes the trip is free (a lift, a shortcut…): no time is spent.
+      if (rng() < FREE_TRAVEL_CHANCE)
+        return done(
+          { ...p, location: action.locationId },
+          `You got a quick lift to the ${name} — no time lost!`,
+          0,
+        );
+      // Not enough time left to get anywhere: the leftover time runs out,
+      // the week ends and the player is sent home (job or no job).
       if (p.timeLeft < TRAVEL_TIME)
         return done(
           p,
@@ -359,6 +371,32 @@ function applyAction(
         },
         `You worked as ${job.title} and earned $${salary}!${garnish}`,
         15,
+      );
+    }
+
+    case "workRest": {
+      const job = p.jobTitle ? findJob(p.jobTitle) : undefined;
+      if (!job) return fail("You need to get a job first!");
+      if (p.energy < 15) return fail("You're too tired to work!");
+      if (p.timeLeft <= 0) return fail("There's no time left this week.");
+      // A "shift" is SHIFT_TIME units; the rest of the week pays pro rata.
+      const shifts = p.timeLeft / SHIFT_TIME;
+      let salary = Math.round(job.salary * shifts);
+      let garnish = "";
+      if (p.rental.hasApartment && p.rental.rentDue) {
+        const cut = Math.floor(salary * 0.2);
+        salary -= cut;
+        garnish = ` Wages garnished: $${cut} due to overdue rent.`;
+      }
+      return done(
+        {
+          ...p,
+          cash: p.cash + salary,
+          energy: Math.max(0, p.energy - Math.ceil(shifts * 15)),
+          experience: Math.min(p.experience + Math.round(shifts * 2), 100),
+        },
+        `You worked the rest of the week as ${job.title} and earned $${salary}!${garnish}`,
+        p.timeLeft,
       );
     }
 
@@ -785,7 +823,7 @@ export function performAction(
   const player = core.players[seat];
   if (!player) return { ok: false, error: "Unknown player." };
 
-  const result = applyAction(player, action, core.market);
+  const result = applyAction(player, action, core.market, rng);
   if (!result.ok) return { ok: false, error: result.error };
 
   let next: GameCore = {
@@ -818,12 +856,12 @@ export function performAction(
     };
   }
 
-  // Spend time; roll the week over when it runs out. Less than one trip's
-  // worth of time left counts as "out": nothing useful can be done with it.
+  // Spend time; the week rolls over only when every last unit is used.
+  // (Free actions, e.g. a lucky trip, spend nothing.)
   let weekEnded = false;
   if (result.time > 0) {
     const timeLeft = result.player.timeLeft - result.time;
-    if (timeLeft >= TRAVEL_TIME) {
+    if (timeLeft > 0) {
       next = {
         ...next,
         players: setAt(next.players, seat, { ...result.player, timeLeft }),
@@ -849,17 +887,17 @@ function rollWeek(
     ...before,
     week: before.week + 1,
     timeLeft: WEEK_LENGTH,
-    // A new week starts at home, if they have one.
-    location: before.rental.hasApartment ? "apartment" : before.location,
+    // Every new week starts at home (the apartment / the place you rent).
+    location: "apartment",
     energy: Math.min(before.energy + 20, 100),
     happiness: before.happiness > 50 ? before.happiness - 5 : before.happiness,
   };
   let summary = `Week ${p.week} begins for ${p.name}.`;
   if (p.location !== before.location)
-    summary += " You went home for the weekend.";
+    summary += " You headed home for the weekend.";
   let next: GameCore = core;
 
-  if (rng() < 0.7) {
+  {
     const ev = pickRandomEvent(p, rng);
     p = applyEventEffects(p, ev.effects);
     next = {

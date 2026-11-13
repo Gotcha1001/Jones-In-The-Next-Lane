@@ -105,3 +105,6 @@ export const locationIds = Object.keys(locations) as LocationId[];
 
 /** Time units spent walking between any two locations. */
 export const TRAVEL_TIME = 5;
+
+/** Chance (0–1) that a trip costs no time at all (a lift, a shortcut…). */
+export const FREE_TRAVEL_CHANCE = 0.3;
