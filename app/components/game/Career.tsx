@@ -195,9 +195,19 @@ export function Workplace() {
           />
         </div>
       </div>
-      <ActionButton action={{ type: "work" }} disabled={player.energy < 15}>
-        Work a shift (15⏱, −15 ⚡)
-      </ActionButton>
+      <div className="flex flex-wrap items-center gap-2">
+        <ActionButton action={{ type: "work" }} disabled={player.energy < 15}>
+          Work a shift (15⏱, −15 ⚡)
+        </ActionButton>
+        <ActionButton
+          action={{ type: "workRest" }}
+          disabled={player.energy < 15 || player.timeLeft <= 0}
+          title="Work every time unit you have left and finish the week"
+        >
+          Work the rest of the week ({player.timeLeft}⏱ ≈ $
+          {Math.round((job.salary * player.timeLeft) / 15)})
+        </ActionButton>
+      </div>
     </ScreenCard>
   );
 }
