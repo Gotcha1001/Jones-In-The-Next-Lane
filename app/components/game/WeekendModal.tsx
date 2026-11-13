@@ -8,6 +8,8 @@ export interface WeekendInfo {
   week: number;
   /** Whose turn is next; null in a one-player game. */
   nextPlayerName: string | null;
+  /** Present when the player forgot to eat this week. */
+  doctor?: { cost: number; timeLost: number };
   title: string;
   description: string;
 }
@@ -169,6 +171,30 @@ export default function WeekendModal({ info, onClose }: Props) {
                       {info.description}
                     </p>
                   </div>
+
+                  {/* Forgot to eat: doctor's bill */}
+                  {info.doctor && (
+                    <div className="relative border border-red-500/50 bg-red-500/10 p-4 pl-5">
+                      <span className="absolute inset-y-0 left-0 w-1 bg-red-500" />
+                      <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-red-400">
+                        🏥 Forgot to eat
+                      </p>
+                      <p className="mt-1 text-xl font-black uppercase tracking-tight">
+                        Doctor&apos;s bill
+                      </p>
+                      <p className="mt-1 text-sm text-[color:var(--wk-muted)]">
+                        You didn&apos;t eat all week.{" "}
+                        <span className="font-bold text-red-400">
+                          −${info.doctor.cost}
+                        </span>{" "}
+                        and{" "}
+                        <span className="font-bold text-red-400">
+                          −{info.doctor.timeLost}⏱
+                        </span>{" "}
+                        off your new week.
+                      </p>
+                    </div>
+                  )}
 
                   {/* Status line */}
                   <p className="font-mono text-[11px] uppercase tracking-widest text-[color:var(--wk-faint)]">

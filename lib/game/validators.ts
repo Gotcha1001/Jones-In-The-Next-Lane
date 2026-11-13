@@ -103,6 +103,8 @@ export const vPlayer = v.object({
   education: v.number(),
   happiness: v.number(),
   energy: v.number(),
+  /** Has the player eaten a meal this week? (Missing in older saves.) */
+  ateThisWeek: v.optional(v.boolean()),
   jobTitle: v.union(v.string(), v.null()),
   possessions: v.array(v.string()),
   location: vLocationId,
@@ -140,6 +142,8 @@ export const vLastEvent = v.union(
     title: v.string(),
     description: v.string(),
     at: v.number(),
+    /** Set when the player forgot to eat that week. */
+    doctor: v.optional(v.object({ cost: v.number(), timeLost: v.number() })),
   }),
 );
 

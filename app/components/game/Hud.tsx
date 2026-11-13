@@ -93,12 +93,17 @@ export function StatsPanel() {
           max={100}
           color="bg-sky-500"
         />
-        <Stat
-          label="Energy"
-          value={player.energy}
-          max={100}
-          color="bg-yellow-500"
-        />
+        <p
+          className={`rounded-lg border px-3 py-1.5 text-xs ${
+            player.ateThisWeek === false
+              ? "border-red-500/40 bg-red-500/10 text-red-400"
+              : "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
+          }`}
+        >
+          {player.ateThisWeek === false
+            ? "🍔 Not eaten this week — visit Fast Food or the doctor bills you!"
+            : "🍔 Eaten this week ✓"}
+        </p>
         <Stat
           label="Happiness"
           value={player.happiness}

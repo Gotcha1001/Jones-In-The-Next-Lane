@@ -22,7 +22,6 @@ import {
   healingServices,
   HEALING_TIME,
   homeActivities,
-  homeActivityMinEnergy,
   INITIAL_STOCKS,
   leisureActivities,
   MEAL_TIME,
@@ -49,6 +48,12 @@ export const RENT_INTERVAL_WEEKS = 4;
 export const MAX_LOG_ENTRIES = 40;
 /** Time units one "shift" takes (and pays one `job.salary` for). */
 export const SHIFT_TIME = 15;
+/** Forgot to eat all week: the doctor charges this much (or all your cash)… */
+export const DOCTOR_BILL = 50;
+/** …and the visit eats this much of next week's time. */
+export const DOCTOR_TIME_LOST = 20;
+/** Happiness gained from a good rest at the apartment. */
+export const SLEEP_HAPPINESS = 10;
 
 export const DEFAULT_GOALS: Goals = {
   cash: 10000,
@@ -112,6 +117,7 @@ export function createPlayer(seat: number, input: NewPlayerInput): PlayerState {
     education: 0,
     happiness: 70,
     energy: 100,
+    ateThisWeek: false,
     jobTitle: null,
     possessions: [],
     location: "apartment",
@@ -303,10 +309,10 @@ function applyAction(
         return fail(
           "You need to rent an apartment first! Visit the Rental Office.",
         );
-      if (p.energy >= 100) return fail("You're already full of energy!");
+      if (p.happiness >= 100) return fail("You're already as happy as can be!");
       return done(
-        { ...p, energy: 100 },
-        "You had a good rest and recovered your energy!",
+        { ...p, happiness: clamp(p.happiness + SLEEP_HAPPINESS, 0, 100) },
+        `You had a good rest: +${SLEEP_HAPPINESS} happiness.`,
         30,
       );
     }
@@ -315,14 +321,10 @@ function applyAction(
       if (!p.rental.hasApartment)
         return fail("You need to rent an apartment first!");
       const def = homeActivities[action.activity];
-      if (p.energy < homeActivityMinEnergy[action.activity]) {
-        return fail(`You're too tired for that (${def.name}).`);
-      }
       return done(
         {
           ...p,
           happiness: clamp(p.happiness + def.happiness, 0, 100),
-          energy: clamp(p.energy - def.energyCost, 0, 100),
         },
         `${def.name}: +${def.happiness} happiness.`,
         def.time,
@@ -336,8 +338,6 @@ function applyAction(
         return fail("Study at the University, or at home in your apartment.");
       const hours = atHome ? 1 : Math.floor(action.hours);
       if (hours < 1 || hours > 10) return fail("Study between 1 and 10 hours.");
-      if (p.energy < 10)
-        return fail("You're too tired to study. Get some rest first!");
       const current = p.subjects[action.subject];
       if (current >= 100) return fail("You've already mastered that subject!");
       const gain = Math.floor(2 * hours * (1 + current / 100));
@@ -348,7 +348,6 @@ function applyAction(
       const next: PlayerState = {
         ...p,
         subjects,
-        energy: Math.max(0, p.energy - hours * 2),
       };
       return done(
         { ...next, education: averageEducation(next) },
@@ -360,7 +359,6 @@ function applyAction(
     case "work": {
       const job = p.jobTitle ? findJob(p.jobTitle) : undefined;
       if (!job) return fail("You need to get a job first!");
-      if (p.energy < 15) return fail("You're too tired to work!");
       let salary = job.salary;
       let garnish = "";
       if (p.rental.hasApartment && p.rental.rentDue) {
@@ -372,7 +370,6 @@ function applyAction(
         {
           ...p,
           cash: p.cash + salary,
-          energy: p.energy - 15,
           experience: Math.min(p.experience + 2, 100),
         },
         `You worked as ${job.title} and earned $${salary}!${garnish}`,
@@ -383,7 +380,6 @@ function applyAction(
     case "workRest": {
       const job = p.jobTitle ? findJob(p.jobTitle) : undefined;
       if (!job) return fail("You need to get a job first!");
-      if (p.energy < 15) return fail("You're too tired to work!");
       if (p.timeLeft <= 0) return fail("There's no time left this week.");
       // A "shift" is SHIFT_TIME units; the rest of the week pays pro rata.
       const shifts = p.timeLeft / SHIFT_TIME;
@@ -398,7 +394,6 @@ function applyAction(
         {
           ...p,
           cash: p.cash + salary,
-          energy: Math.max(0, p.energy - Math.ceil(shifts * 15)),
           experience: Math.min(p.experience + Math.round(shifts * 2), 100),
         },
         `You worked the rest of the week as ${job.title} and earned $${salary}!${garnish}`,
@@ -438,9 +433,6 @@ function applyAction(
           ...p,
           cash: round2(p.cash - item.price),
           possessions: [...p.possessions, item.name],
-          energy: item.energy
-            ? Math.min(p.energy + item.energy, 100)
-            : p.energy,
           happiness: item.happiness
             ? Math.min(p.happiness + item.happiness, 100)
             : p.happiness,
@@ -458,10 +450,10 @@ function applyAction(
         {
           ...p,
           cash: round2(p.cash - meal.price),
-          energy: Math.min(p.energy + meal.energy, 100),
           happiness: Math.min(p.happiness + meal.happiness, 100),
+          ateThisWeek: true,
         },
-        `You enjoyed a ${meal.name}: +${meal.energy} energy, +${meal.happiness} happiness.`,
+        `You enjoyed a ${meal.name}: +${meal.happiness} happiness. You've eaten for the week!`,
         MEAL_TIME,
       );
     }
@@ -490,13 +482,10 @@ function applyAction(
       const act = leisureActivities[action.activity];
       if (p.cash < act.cost)
         return fail(`You don't have enough cash for ${act.name}.`);
-      if (p.energy < act.energy)
-        return fail(`You're too tired for ${act.name}.`);
       return done(
         {
           ...p,
           cash: round2(p.cash - act.cost),
-          energy: Math.max(0, p.energy - act.energy),
           happiness: Math.min(p.happiness + act.happiness, 100),
         },
         `You enjoyed ${act.name} and gained ${act.happiness} happiness!`,
@@ -945,13 +934,33 @@ function rollWeek(
     timeLeft: WEEK_LENGTH,
     // Every new week starts at home (the apartment / the place you rent).
     location: "apartment",
-    energy: Math.min(before.energy + 20, 100),
+    ateThisWeek: false,
     happiness: before.happiness > 50 ? before.happiness - 5 : before.happiness,
   };
   let summary = `Week ${p.week} begins for ${p.name}.`;
   if (p.location !== before.location)
     summary += " You headed home for the weekend.";
   let next: GameCore = core;
+
+  // Forgot to eat all week? The doctor sends a bill and takes some of the
+  // new week's time. (`=== false` so old saves without the flag get a pass.)
+  let doctor: { cost: number; timeLost: number } | undefined;
+  if (before.ateThisWeek === false) {
+    const cost = Math.min(DOCTOR_BILL, p.cash);
+    p = {
+      ...p,
+      cash: round2(p.cash - cost),
+      timeLeft: WEEK_LENGTH - DOCTOR_TIME_LOST,
+    };
+    doctor = { cost, timeLost: DOCTOR_TIME_LOST };
+    summary += ` You forgot to eat! Doctor's bill: $${cost}, and ${DOCTOR_TIME_LOST} time units lost.`;
+    next = pushLog(
+      next,
+      seat,
+      `${p.name} forgot to eat this week: doctor's bill $${cost}, -${DOCTOR_TIME_LOST} time.`,
+      now,
+    );
+  }
 
   {
     const ev = pickRandomEvent(p, rng);
@@ -964,6 +973,7 @@ function rollWeek(
         title: ev.title,
         description: ev.description,
         at: now,
+        ...(doctor ? { doctor } : {}),
       },
     };
     summary += ` ${ev.title}: ${ev.description}`;
