@@ -173,7 +173,7 @@ export const createLocalGame = mutation({
 });
 
 // ── Mr Jones (the computer opponent) ────────────────────────────────────────
-const BOT_START_MS = 2500; // pause so everyone can read the weekend recap
+const BOT_START_MS = 800; // short beat after the human closes the weekend recap
 const BOT_TICK_MS = 1100; // time between visible steps
 const BOT_WALK_MS = 2000; // time for the walking animation
 
@@ -282,8 +282,35 @@ export const resumeBot = mutation({
       (s: Seat) => s.seat === game.core.currentSeat,
     )?.bot;
     if (!isBot || Date.now() - game.updatedAt < 8000) return;
-    await ctx.db.patch(gameId, { updatedAt: Date.now() });
+    await ctx.db.patch(gameId, { updatedAt: Date.now(), botHold: false });
     await ctx.scheduler.runAfter(0, internal.game.botStep, { gameId });
+  },
+});
+
+/**
+ * The human closed the weekend recap → Mr Jones may start his turn now.
+ * Idempotent: only the first call after a hold schedules him, so a double
+ * click (or Enter + click) can never start two turns at once.
+ */
+export const releaseBot = mutation({
+  args: { gameId: v.id("games") },
+  handler: async (ctx, { gameId }): Promise<void> => {
+    const me = await requireUser(ctx);
+    const game = await ctx.db.get(gameId);
+    if (!game || game.ownerId !== me._id || game.core.status !== "active")
+      return;
+    if (!game.botHold) return;
+    const isBot = game.seats.find(
+      (s: Seat) => s.seat === game.core.currentSeat,
+    )?.bot;
+    if (!isBot) {
+      await ctx.db.patch(gameId, { botHold: false });
+      return;
+    }
+    await ctx.db.patch(gameId, { botHold: false, updatedAt: Date.now() });
+    await ctx.scheduler.runAfter(BOT_START_MS, internal.game.botStep, {
+      gameId,
+    });
   },
 });
 
@@ -328,14 +355,20 @@ export const act = mutation({
     if (outcome.core.status === "finished" && game.roomId) {
       await ctx.db.patch(game.roomId, { status: "finished" });
     }
-    // The turn just passed to the computer: let him start playing.
+    // The turn just passed to the computer. Don't start him yet: the human
+    // is looking at the weekend recap, and Mr Jones only begins once it has
+    // been closed (client calls `releaseBot`).
     if (
       outcome.core.status === "active" &&
       game.seats.find((s: Seat) => s.seat === outcome.core.currentSeat)?.bot
     ) {
-      await ctx.scheduler.runAfter(BOT_START_MS, internal.game.botStep, {
-        gameId,
-      });
+      if (outcome.weekEnded) {
+        await ctx.db.patch(gameId, { botHold: true });
+      } else {
+        await ctx.scheduler.runAfter(BOT_START_MS, internal.game.botStep, {
+          gameId,
+        });
+      }
     }
     return {
       ok: true,

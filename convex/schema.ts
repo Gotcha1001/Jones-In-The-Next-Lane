@@ -71,6 +71,11 @@ export default defineSchema({
     mode: vGameMode,
     seats: v.array(vSeat),
     core: vGameCore,
+    /**
+     * True while Mr Jones is waiting for the human to close the weekend recap
+     * before he starts his turn (see `act` / `releaseBot`).
+     */
+    botHold: v.optional(v.boolean()),
     createdAt: v.number(),
     updatedAt: v.number(),
   })

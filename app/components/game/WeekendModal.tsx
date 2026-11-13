@@ -2,9 +2,14 @@
 
 import { useEffect, useRef } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { PlayerAvatar } from "@/app/components/PlayerAvatar";
 
 export interface WeekendInfo {
   playerName: string;
+  /** Avatar of the player whose week just ended (shown in the header). */
+  playerAvatar?: string;
+  /** True when the computer (Mr Jones) played this week → recap auto-closes. */
+  isBot?: boolean;
   week: number;
   /** Whose turn is next; null in a one-player game. */
   nextPlayerName: string | null;
@@ -18,7 +23,11 @@ interface Props {
   /** null = closed. */
   info: WeekendInfo | null;
   onClose: () => void;
+  /** How long Mr Jones' recap stays up before it closes by itself. */
+  botAutoCloseMs?: number;
 }
+
+const DEFAULT_BOT_AUTO_CLOSE_MS = 3500;
 
 /* Same cyberpunk look as the home page (clipped corners, gradient frame,
    glitch title, scanlines, grid floor). Self-contained and prefixed `wk-` so
@@ -62,7 +71,11 @@ const CSS = `
 `;
 
 /** Shown when a week ends: what randomly happened over the weekend. */
-export default function WeekendModal({ info, onClose }: Props) {
+export default function WeekendModal({
+  info,
+  onClose,
+  botAutoCloseMs = DEFAULT_BOT_AUTO_CLOSE_MS,
+}: Props) {
   const buttonRef = useRef<HTMLButtonElement>(null);
   const onCloseRef = useRef(onClose);
   const reduceMotion = useReducedMotion();
@@ -80,6 +93,15 @@ export default function WeekendModal({ info, onClose }: Props) {
     buttonRef.current?.focus();
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [isOpen]);
+
+  // Mr Jones' recap closes by itself so nobody has to click it away.
+  // Depends on `info` (not just isOpen) so back-to-back recaps restart the timer.
+  const autoClose = info?.isBot === true;
+  useEffect(() => {
+    if (!info || !autoClose) return;
+    const id = window.setTimeout(() => onCloseRef.current(), botAutoCloseMs);
+    return () => window.clearTimeout(id);
+  }, [info, autoClose, botAutoCloseMs]);
 
   return (
     <AnimatePresence>
@@ -112,6 +134,32 @@ export default function WeekendModal({ info, onClose }: Props) {
             <div className="wk-frame">
               <div className="wk-inner relative text-left text-[color:var(--wk-fg)]">
                 <div className="wk-scan pointer-events-none absolute inset-0" />
+
+                {/* Whose recap is this? */}
+                <div
+                  className="relative flex items-center gap-3 border-b border-[color:var(--wk-line)] px-5 py-3"
+                  style={{
+                    background:
+                      "linear-gradient(90deg,color-mix(in oklab,var(--c1) 18%,transparent),transparent)",
+                  }}
+                >
+                  {info.playerAvatar && (
+                    <PlayerAvatar
+                      src={info.playerAvatar}
+                      name={info.playerName}
+                      size={44}
+                      className="shrink-0 ring-2 ring-[color:var(--c1)]"
+                    />
+                  )}
+                  <div className="min-w-0">
+                    <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-[color:var(--wk-faint)]">
+                      {info.isBot ? "🤖 Computer player" : "Player"}
+                    </p>
+                    <p className="truncate text-xl font-black uppercase leading-tight tracking-tight text-[color:var(--c1)]">
+                      {info.playerName}
+                    </p>
+                  </div>
+                </div>
 
                 {/* HUD bar */}
                 <div className="relative flex items-center justify-between border-b border-[color:var(--wk-line)] px-5 py-3 font-mono text-[10px] uppercase tracking-[0.3em] text-[color:var(--wk-faint)]">
@@ -183,7 +231,8 @@ export default function WeekendModal({ info, onClose }: Props) {
                         Doctor&apos;s bill
                       </p>
                       <p className="mt-1 text-sm text-[color:var(--wk-muted)]">
-                        You didn&apos;t eat all week.{" "}
+                        {info.isBot ? info.playerName : "You"} didn&apos;t eat
+                        all week.{" "}
                         <span className="font-bold text-red-400">
                           −${info.doctor.cost}
                         </span>{" "}
@@ -191,7 +240,7 @@ export default function WeekendModal({ info, onClose }: Props) {
                         <span className="font-bold text-red-400">
                           −{info.doctor.timeLost}⏱
                         </span>{" "}
-                        off your new week.
+                        off {info.isBot ? "the" : "your"} new week.
                       </p>
                     </div>
                   )}
@@ -214,6 +263,28 @@ export default function WeekendModal({ info, onClose }: Props) {
                       <> · new week begins</>
                     )}
                   </p>
+
+                  {autoClose && (
+                    <div
+                      className="h-1 w-full overflow-hidden bg-[color:var(--wk-tint)]"
+                      aria-hidden
+                    >
+                      <motion.div
+                        key={`${info.playerName}-${info.week}`}
+                        className="h-full"
+                        style={{
+                          background:
+                            "linear-gradient(90deg,var(--c1),var(--c2))",
+                        }}
+                        initial={{ width: "0%" }}
+                        animate={{ width: "100%" }}
+                        transition={{
+                          duration: botAutoCloseMs / 1000,
+                          ease: "linear",
+                        }}
+                      />
+                    </div>
+                  )}
 
                   <button
                     ref={buttonRef}
