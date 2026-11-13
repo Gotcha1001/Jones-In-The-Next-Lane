@@ -84,6 +84,7 @@ export function AppSidebar() {
   const saves = useQuery(api.saves.listSaves, isSignedIn ? {} : "skip");
   const loadSave = useMutation(api.saves.loadSave);
   const deleteSave = useMutation(api.saves.deleteSave);
+  const deleteGame = useMutation(api.game.deleteGame);
 
   if (!isSignedIn) return null;
 
@@ -104,6 +105,22 @@ export function AppSidebar() {
   const onDelete = async (saveId: Id<"savedGames">): Promise<void> => {
     await deleteSave({ saveId });
     toast.success("Save deleted");
+  };
+
+  const onDeleteGame = async (
+    gameId: Id<"games">,
+    label: string,
+    href: string,
+  ): Promise<void> => {
+    if (!window.confirm(`Delete "${label}"? This can't be undone.`)) return;
+    try {
+      await deleteGame({ gameId });
+      toast.success("Game deleted");
+      // If that's the game on screen, leave it.
+      if (pathname === href) router.push("/");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Couldn't delete that game");
+    }
   };
 
   const activeGames = (myGames ?? []).filter((g) => g.status === "active");
@@ -189,6 +206,23 @@ export function AppSidebar() {
                     </span>
                   </Link>
                 </SidebarMenuButton>
+                {/* Online games are removed by resetting the room, not here. */}
+                {g.mode === "local" && (
+                  <SidebarMenuAction
+                    aria-label={`Delete ${g.playerNames.join(", ")} · R${g.round}`}
+                    onClick={() =>
+                      void onDeleteGame(
+                        g._id,
+                        `${g.playerNames.join(", ")} · R${g.round}`,
+                        gameHref(g),
+                      )
+                    }
+                    showOnHover
+                    className="text-rose-400 hover:bg-rose-500/20 hover:text-rose-300"
+                  >
+                    <Trash2 size={14} />
+                  </SidebarMenuAction>
+                )}
               </SidebarMenuItem>
             ))}
           </SidebarMenu>

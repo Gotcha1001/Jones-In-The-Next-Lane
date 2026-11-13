@@ -129,9 +129,9 @@ export function Apartment() {
       <div className="flex flex-wrap gap-2">
         <ActionButton
           action={{ type: "sleep" }}
-          disabled={player.energy >= 100}
+          disabled={player.happiness >= 100}
         >
-          😴 Sleep (30⏱)
+          😴 Rest (30⏱, +10 😊)
         </ActionButton>
         {activities.map((a) => (
           <ActionButton

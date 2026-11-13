@@ -34,7 +34,6 @@ export function Mall() {
                 <p className={META}>
                   ${item.price}
                   {item.happiness ? ` · +${item.happiness} 😊` : ""}
-                  {item.energy ? ` · +${item.energy} ⚡` : ""}
                 </p>
               </div>
               <ActionButton
@@ -64,7 +63,7 @@ export function FastFood() {
             <div>
               <p className={NAME}>{m.name}</p>
               <p className={META}>
-                ${m.price} · +{m.energy} ⚡ · +{m.happiness} 😊
+                ${m.price} · +{m.happiness} 😊 · counts as eating for the week
               </p>
             </div>
             <ActionButton
@@ -132,13 +131,12 @@ export function LeisureCentre() {
               <div>
                 <p className={NAME}>{a.name}</p>
                 <p className={META}>
-                  {a.description} · ${a.cost} · {a.time}⏱ · −{a.energy} ⚡ · +
-                  {a.happiness} 😊
+                  {a.description} · ${a.cost} · {a.time}⏱ · +{a.happiness} 😊
                 </p>
               </div>
               <ActionButton
                 action={{ type: "leisure", activity: id }}
-                disabled={player.cash < a.cost || player.energy < a.energy}
+                disabled={player.cash < a.cost}
               >
                 Go
               </ActionButton>

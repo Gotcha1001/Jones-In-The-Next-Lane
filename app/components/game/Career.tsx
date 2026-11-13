@@ -82,12 +82,12 @@ export function University() {
         </label>
         <ActionButton
           action={{ type: "studySubject", subject, hours }}
-          disabled={player.energy < 10 || player.subjects[subject] >= 100}
+          disabled={player.subjects[subject] >= 100}
         >
           Study
         </ActionButton>
         <span className="text-xs text-muted-foreground">
-          Costs {hours * 2} energy and {hours} time unit(s).
+          Costs {hours} time unit(s).
         </span>
       </div>
     </ScreenCard>
@@ -199,12 +199,12 @@ export function Workplace() {
         </div>
       </div>
       <div className="flex flex-wrap items-center gap-2">
-        <ActionButton action={{ type: "work" }} disabled={player.energy < 15}>
-          Work a shift (15⏱, −15 ⚡)
+        <ActionButton action={{ type: "work" }} disabled={player.timeLeft <= 0}>
+          Work a shift (15⏱)
         </ActionButton>
         <ActionButton
           action={{ type: "workRest" }}
-          disabled={player.energy < 15 || player.timeLeft <= 0}
+          disabled={player.timeLeft <= 0}
           title="Work every time unit you have left and finish the week"
         >
           Work the rest of the week ({player.timeLeft}⏱ ≈ $
