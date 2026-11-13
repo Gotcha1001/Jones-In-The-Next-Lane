@@ -166,7 +166,21 @@ export const act = mutation({
       Math.random,
       Date.now(),
     );
-    if (!outcome.ok) return { ok: false, error: outcome.error };
+    if (!outcome.ok) {
+      // Broadcast the error toast so everyone sees what the player sees.
+      await ctx.db.patch(gameId, {
+        core: {
+          ...game.core,
+          lastNotice: {
+            seat,
+            kind: "error",
+            text: outcome.error,
+            at: Date.now(),
+          },
+        },
+      });
+      return { ok: false, error: outcome.error };
+    }
 
     await ctx.db.patch(gameId, { core: outcome.core, updatedAt: Date.now() });
     if (outcome.core.status === "finished" && game.roomId) {
@@ -177,6 +191,28 @@ export const act = mutation({
       message: outcome.message,
       weekEnded: outcome.weekEnded,
     };
+  },
+});
+
+/**
+ * The acting player changed a control on a place screen (selected a subject,
+ * typed an amount…). Stored so every other player sees it too.
+ */
+export const setUi = mutation({
+  args: {
+    gameId: v.id("games"),
+    key: v.string(),
+    value: v.union(v.string(), v.number(), v.boolean()),
+  },
+  handler: async (ctx, { gameId, key, value }): Promise<void> => {
+    const me = await requireUser(ctx);
+    const game = await ctx.db.get(gameId);
+    if (!game || game.core.status !== "active") return;
+    if (actingSeat(game, me._id) === null) return;
+    if (key.length === 0 || key.length > 60) return;
+    await ctx.db.patch(gameId, {
+      core: { ...game.core, ui: { ...(game.core.ui ?? {}), [key]: value } },
+    });
   },
 });
 

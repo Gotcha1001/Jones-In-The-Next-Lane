@@ -1,12 +1,12 @@
 "use client";
 
-import { useState } from "react";
 import { findJob, jobs } from "@/lib/game/data/jobs";
 import { SUBJECTS } from "@/lib/game/data/services";
 import { jobIsAvailable, jobsWithinReach } from "@/lib/game/engine";
 import type { SubjectId } from "@/lib/game/validators";
 import { useGame } from "./GameContext";
 import { ActionButton, ScreenCard } from "./ui";
+import { useSharedState } from "@/hooks/useSharedState";
 
 /* Accent-aware glow helpers (follow --accent-400, so they change with the picker) */
 const GLOW_BOX =
@@ -21,8 +21,11 @@ const GLOW_TEXT = {
 
 export function University() {
   const { player } = useGame();
-  const [subject, setSubject] = useState<SubjectId>("computerScience");
-  const [hours, setHours] = useState(1);
+  const [subject, setSubject] = useSharedState<SubjectId>(
+    "uni-subject",
+    "computerScience",
+  );
+  const [hours, setHours] = useSharedState<number>("uni-hours", 1);
   return (
     <ScreenCard
       title="University"
@@ -93,7 +96,7 @@ export function University() {
 
 export function EmploymentOffice() {
   const { player } = useGame();
-  const [showAll, setShowAll] = useState(false);
+  const [showAll, setShowAll] = useSharedState<boolean>("jobs-showall", false);
   const list = showAll ? jobs : jobsWithinReach(player);
   return (
     <ScreenCard

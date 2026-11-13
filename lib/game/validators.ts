@@ -143,6 +143,27 @@ export const vLastEvent = v.union(
   }),
 );
 
+/** The place modal the active player currently has open (shared with everyone). */
+export const vOpenPlace = v.union(
+  v.null(),
+  v.object({ place: vLocationId, seat: v.number(), at: v.number() }),
+);
+
+/** The latest toast-worthy message, so every player sees the same toasts. */
+export const vNotice = v.union(
+  v.null(),
+  v.object({
+    seat: v.number(),
+    kind: v.union(
+      v.literal("success"),
+      v.literal("error"),
+      v.literal("weekEnd"),
+    ),
+    text: v.string(),
+    at: v.number(),
+  }),
+);
+
 export const vGameStatus = v.union(v.literal("active"), v.literal("finished"));
 export const vGameMode = v.union(v.literal("online"), v.literal("local"));
 
@@ -155,6 +176,13 @@ export const vGameCore = v.object({
   market: v.array(vStock),
   log: v.array(vLogEntry),
   lastEvent: vLastEvent,
+  // Optional so games saved before these existed still validate.
+  openPlace: v.optional(vOpenPlace),
+  /** Selections/inputs on the open place screen, shared with all players. */
+  ui: v.optional(
+    v.record(v.string(), v.union(v.string(), v.number(), v.boolean())),
+  ),
+  lastNotice: v.optional(vNotice),
   winnerSeat: v.union(v.number(), v.null()),
 });
 
@@ -162,6 +190,8 @@ export const vGameCore = v.object({
 export const vGameAction = v.union(
   v.object({ type: v.literal("moveTo"), locationId: vLocationId }),
   v.object({ type: v.literal("endTurn") }),
+  v.object({ type: v.literal("openPlace"), locationId: vLocationId }),
+  v.object({ type: v.literal("closePlace") }),
   v.object({ type: v.literal("sleep") }),
   v.object({ type: v.literal("homeActivity"), activity: vHomeActivity }),
   v.object({
