@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
 import { datingOptions } from "@/lib/game/data/dating";
 import { PlayerAvatar } from "../PlayerAvatar";
 import { useGame } from "./GameContext";
 import { ActionButton, ScreenCard } from "./ui";
+import { useSharedState } from "@/hooks/useSharedState";
 
 type Filter = "all" | "Male" | "Female";
 
@@ -19,7 +19,7 @@ const META = "text-xs text-cyan-300/80";
 
 export function DatingOffice() {
   const { player } = useGame();
-  const [filter, setFilter] = useState<Filter>("all");
+  const [filter, setFilter] = useSharedState<Filter>("dating-filter", "all");
   const rel = player.relationship;
   const list = rel.isDating
     ? datingOptions.filter((p) => p.id === rel.partnerId)

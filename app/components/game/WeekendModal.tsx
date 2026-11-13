@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 
 export interface WeekendInfo {
   playerName: string;
   week: number;
+  /** Whose turn is next; null in a one-player game. */
+  nextPlayerName: string | null;
   title: string;
   description: string;
 }
@@ -16,10 +18,52 @@ interface Props {
   onClose: () => void;
 }
 
+/* Same cyberpunk look as the home page (clipped corners, gradient frame,
+   glitch title, scanlines, grid floor). Self-contained and prefixed `wk-` so
+   it never clashes with the home page's own `.cp-*` styles. Colours follow the
+   accent picked on the Appearance page and the light/dark mode. */
+const CSS = `
+.wk{--c1:var(--accent-600,#0d9488);--c2:#0891b2;--c3:#db2777;
+  --wk-surface:#ffffff;--wk-fg:#0f172a;--wk-muted:#475569;--wk-faint:#64748b;
+  --wk-line:rgba(15,23,42,.16);--wk-tint:rgba(15,23,42,.05);--wk-btn-fg:#ffffff;--wk-blend:multiply}
+.dark .wk{--c1:var(--accent-400,#2dd4bf);--c2:#00e5ff;--c3:#ff2e97;
+  --wk-surface:#070a11;--wk-fg:#f5f5f4;--wk-muted:#d6d3d1;--wk-faint:#a8a29e;
+  --wk-line:rgba(255,255,255,.14);--wk-tint:rgba(255,255,255,.05);--wk-btn-fg:#021014;--wk-blend:screen}
+.wk-frame{background:linear-gradient(135deg,var(--c1),var(--wk-tint) 45%,var(--c2));padding:1px;
+  clip-path:polygon(0 0,calc(100% - 18px) 0,100% 18px,100% 100%,18px 100%,0 calc(100% - 18px))}
+.wk-inner{background:var(--wk-surface);
+  clip-path:polygon(0 0,calc(100% - 17px) 0,100% 17px,100% 100%,17px 100%,0 calc(100% - 17px))}
+.wk-glow{filter:drop-shadow(0 0 22px color-mix(in oklab,var(--c1) 55%,transparent))}
+.wk-scan{background:repeating-linear-gradient(0deg,color-mix(in oklab,var(--wk-fg) 4%,transparent) 0,color-mix(in oklab,var(--wk-fg) 4%,transparent) 1px,transparent 1px,transparent 3px)}
+.wk-floor{background-image:linear-gradient(var(--c1) 1px,transparent 1px),linear-gradient(90deg,var(--c1) 1px,transparent 1px);
+  background-size:64px 64px;transform:perspective(420px) rotateX(62deg);transform-origin:center top;
+  animation:wk-grid 2.2s linear infinite;
+  -webkit-mask-image:linear-gradient(to bottom,transparent,#000 35%,#000);mask-image:linear-gradient(to bottom,transparent,#000 35%,#000)}
+.wk-btn{clip-path:polygon(0 0,calc(100% - 12px) 0,100% 12px,100% 100%,12px 100%,0 calc(100% - 12px));
+  background:linear-gradient(90deg,var(--c1),var(--c2));color:var(--wk-btn-fg);font-weight:900;letter-spacing:.12em;
+  text-transform:uppercase;transition:filter .2s,transform .2s}
+.wk-btn:hover{filter:brightness(1.15);transform:translateY(-1px)}
+.wk-btn:focus-visible{outline:2px solid var(--c2);outline-offset:3px}
+.wk-glitch{position:relative;display:inline-block;text-shadow:0 0 22px color-mix(in oklab,var(--c1) 55%,transparent)}
+.wk-glitch::before,.wk-glitch::after{content:attr(data-text);position:absolute;inset:0;pointer-events:none}
+.wk-glitch::before{color:var(--c2);animation:wk-glitch-a 5s infinite steps(1);mix-blend-mode:var(--wk-blend)}
+.wk-glitch::after{color:var(--c3);animation:wk-glitch-b 5s infinite steps(1);mix-blend-mode:var(--wk-blend)}
+@keyframes wk-grid{from{background-position:0 0}to{background-position:0 64px}}
+@keyframes wk-blink{0%,100%{opacity:1}50%{opacity:.2}}
+@keyframes wk-glitch-a{0%,90%,100%{transform:translate(0);clip-path:inset(0 0 0 0)}
+  91%{transform:translate(-5px,1px);clip-path:inset(8% 0 58% 0)}93%{transform:translate(4px,-1px);clip-path:inset(62% 0 6% 0)}
+  96%{transform:translate(-3px,0);clip-path:inset(30% 0 42% 0)}}
+@keyframes wk-glitch-b{0%,88%,100%{transform:translate(0);clip-path:inset(0 0 0 0)}
+  89%{transform:translate(5px,-1px);clip-path:inset(50% 0 20% 0)}92%{transform:translate(-4px,1px);clip-path:inset(12% 0 64% 0)}
+  95%{transform:translate(3px,0);clip-path:inset(72% 0 4% 0)}}
+@media (prefers-reduced-motion:reduce){.wk *,.wk *::before,.wk *::after{animation:none!important}}
+`;
+
 /** Shown when a week ends: what randomly happened over the weekend. */
 export default function WeekendModal({ info, onClose }: Props) {
   const buttonRef = useRef<HTMLButtonElement>(null);
   const onCloseRef = useRef(onClose);
+  const reduceMotion = useReducedMotion();
   useEffect(() => {
     onCloseRef.current = onClose;
   }, [onClose]);
@@ -39,41 +83,125 @@ export default function WeekendModal({ info, onClose }: Props) {
     <AnimatePresence>
       {info && (
         <motion.div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+          className="wk fixed inset-0 z-50 flex items-center justify-center overflow-hidden bg-black/85 p-4 backdrop-blur-sm"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
         >
+          <style>{CSS}</style>
+
+          {/* Atmosphere: scanlines + moving neon grid floor */}
+          <div className="wk-scan pointer-events-none absolute inset-0" />
+          <div
+            className="wk-floor pointer-events-none absolute inset-x-0 bottom-0 h-1/2 opacity-[0.14]"
+            aria-hidden
+          />
+
           <motion.div
             role="dialog"
             aria-modal="true"
             aria-label="Weekend recap"
-            className="accent-card w-full max-w-md rounded-2xl border border-cyan-400/40 bg-black/80 p-6 text-center shadow-[0_0_30px_var(--accent-400)]"
-            initial={{ scale: 0.9, y: 20 }}
-            animate={{ scale: 1, y: 0 }}
-            exit={{ scale: 0.9, y: 20 }}
+            className="wk-glow relative w-full max-w-lg"
+            initial={reduceMotion ? false : { scale: 0.94, y: 24, opacity: 0 }}
+            animate={{ scale: 1, y: 0, opacity: 1 }}
+            exit={reduceMotion ? undefined : { scale: 0.96, y: 16, opacity: 0 }}
+            transition={{ type: "spring", damping: 24, stiffness: 260 }}
           >
-            <p className="text-xs uppercase tracking-widest text-cyan-300/70">
-              📅 Week {info.week} has ended
-            </p>
-            <h2 className="accent-gradient-text mt-2 text-2xl font-bold">
-              Over the weekend…
-            </h2>
-            <p className="mt-4 text-lg font-semibold text-white">
-              🎲 {info.title}
-            </p>
-            <p className="mt-1 text-sm text-cyan-100/90">{info.description}</p>
-            <p className="mt-4 text-xs text-cyan-300/70">
-              {info.playerName} is back home. A new week begins!
-            </p>
-            <button
-              ref={buttonRef}
-              type="button"
-              onClick={onClose}
-              className="mt-5 rounded-lg border border-cyan-400/60 bg-cyan-500/15 px-5 py-2 text-sm font-medium text-cyan-100 transition hover:bg-cyan-500/30"
-            >
-              Start week {info.week + 1}
-            </button>
+            <div className="wk-frame">
+              <div className="wk-inner relative text-left text-[color:var(--wk-fg)]">
+                <div className="wk-scan pointer-events-none absolute inset-0" />
+
+                {/* HUD bar */}
+                <div className="relative flex items-center justify-between border-b border-[color:var(--wk-line)] px-5 py-3 font-mono text-[10px] uppercase tracking-[0.3em] text-[color:var(--wk-faint)]">
+                  <span className="flex items-center gap-2">
+                    <span
+                      className="h-2 w-2 rounded-full bg-red-500"
+                      style={{ animation: "wk-blink 1.4s infinite" }}
+                    />
+                    Week {info.week} complete
+                  </span>
+                  <span className="text-[color:var(--c2)]">SYS.WEEKEND</span>
+                </div>
+
+                <div className="relative space-y-5 p-6 sm:p-7">
+                  {/* Title */}
+                  <div>
+                    <p className="font-mono text-[11px] uppercase tracking-[0.35em] text-[color:var(--c2)]"></p>
+                    <h2 className="mt-2 text-3xl font-black uppercase leading-none tracking-tight sm:text-4xl">
+                      <span
+                        className="wk-glitch text-[color:var(--c1)]"
+                        data-text="OVER THE"
+                      >
+                        OVER THE
+                      </span>{" "}
+                      <span
+                        className="wk-glitch text-[color:var(--wk-fg)]"
+                        data-text="WEEKEND"
+                      >
+                        WEEKEND
+                      </span>
+                    </h2>
+                    <div
+                      className="mt-3 h-px w-24"
+                      style={{
+                        background:
+                          "linear-gradient(90deg,var(--c1),transparent)",
+                      }}
+                    />
+                  </div>
+
+                  {/* Event card */}
+                  <div className="relative border border-[color:var(--wk-line)] bg-[color:var(--wk-tint)] p-4 pl-5">
+                    <span
+                      className="absolute inset-y-0 left-0 w-1"
+                      style={{
+                        background:
+                          "linear-gradient(180deg,var(--c1),var(--c2))",
+                      }}
+                    />
+                    <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-[color:var(--wk-faint)]">
+                      🎲 Random event
+                    </p>
+                    <p className="mt-1 text-xl font-black uppercase tracking-tight">
+                      {info.title}
+                    </p>
+                    <p className="mt-1 text-sm text-[color:var(--wk-muted)]">
+                      {info.description}
+                    </p>
+                  </div>
+
+                  {/* Status line */}
+                  <p className="font-mono text-[11px] uppercase tracking-widest text-[color:var(--wk-faint)]">
+                    <span className="text-[color:var(--c2)]">
+                      {info.playerName}
+                    </span>{" "}
+                    → home
+                    {info.nextPlayerName ? (
+                      <>
+                        {" "}
+                        · next up{" "}
+                        <span className="text-[color:var(--c1)]">
+                          {info.nextPlayerName}
+                        </span>
+                      </>
+                    ) : (
+                      <> · new week begins</>
+                    )}
+                  </p>
+
+                  <button
+                    ref={buttonRef}
+                    type="button"
+                    onClick={onClose}
+                    className="wk-btn w-full px-6 py-3 text-sm"
+                  >
+                    {info.nextPlayerName
+                      ? `Continue — ${info.nextPlayerName}'s turn`
+                      : `Start week ${info.week + 1}`}
+                  </button>
+                </div>
+              </div>
+            </div>
           </motion.div>
         </motion.div>
       )}

@@ -227,6 +227,8 @@ const done = (player: PlayerState, message: string, time = 0): Applied => ({
 const REQUIRED_LOCATION: Record<GameAction["type"], LocationId | null> = {
   moveTo: null,
   endTurn: null,
+  openPlace: null,
+  closePlace: null,
   sleep: "apartment",
   homeActivity: "apartment",
   studySubject: null, // university or apartment (checked in handler)
@@ -288,6 +290,10 @@ function applyAction(
         TRAVEL_TIME,
       );
     }
+
+    case "openPlace":
+    case "closePlace":
+      return done(p, "", 0); // handled in performAction
 
     case "endTurn":
       return done(p, `${p.name} ended the week early.`, p.timeLeft);
@@ -823,12 +829,40 @@ export function performAction(
   const player = core.players[seat];
   if (!player) return { ok: false, error: "Unknown player." };
 
+  // Opening / closing a place modal costs nothing and is shared with every
+  // player so they all see the same screen as the active player.
+  if (action.type === "openPlace") {
+    if (action.locationId !== player.location)
+      return { ok: false, error: "You're not at that place." };
+    return {
+      ok: true,
+      core: {
+        ...core,
+        openPlace: { place: action.locationId, seat, at: now },
+        ui: {},
+      },
+      message: "",
+      weekEnded: false,
+    };
+  }
+  if (action.type === "closePlace") {
+    return {
+      ok: true,
+      core: { ...core, openPlace: null, ui: {} },
+      message: "",
+      weekEnded: false,
+    };
+  }
+
   const result = applyAction(player, action, core.market, rng);
   if (!result.ok) return { ok: false, error: result.error };
 
   let next: GameCore = {
     ...core,
     players: setAt(core.players, seat, result.player),
+    // Walking away leaves the place; anything else keeps it open.
+    openPlace: action.type === "moveTo" ? null : (core.openPlace ?? null),
+    ui: action.type === "moveTo" ? {} : (core.ui ?? {}),
   };
   let message = result.message;
   next = pushLog(next, seat, result.message, now);
@@ -850,7 +884,17 @@ export function performAction(
     };
     return {
       ok: true,
-      core: next,
+      core: {
+        ...next,
+        openPlace: null,
+        ui: {},
+        lastNotice: {
+          seat,
+          kind: "success",
+          text: `🎉 ${result.player.name} won the game!`,
+          at: now,
+        },
+      },
       message: `🎉 ${result.player.name} won the game!`,
       weekEnded: false,
     };
@@ -873,6 +917,18 @@ export function performAction(
       weekEnded = true;
     }
   }
+  // Everyone gets the same toast the acting player sees.
+  next = {
+    ...next,
+    openPlace: weekEnded ? null : (next.openPlace ?? null),
+    ui: weekEnded ? {} : (next.ui ?? {}),
+    lastNotice: {
+      seat,
+      kind: weekEnded ? "weekEnd" : "success",
+      text: message,
+      at: now,
+    },
+  };
   return { ok: true, core: next, message, weekEnded };
 }
 

@@ -19,9 +19,8 @@ import { LocationPanel } from "./LocationPanel";
 import PlaceModal from "./PlaceModal";
 import { SaveDialog } from "./SaveDialog";
 import { WeekMeter } from "./ui";
-
+import WeekendModal, { type WeekendInfo } from "./WeekendModal";
 import { WinScreen } from "./WinScreen";
-import WeekendModal, { WeekendInfo } from "./WeekendModal";
 
 interface Props {
   gameId: Id<"games">;
@@ -30,19 +29,16 @@ interface Props {
   isHost?: boolean;
 }
 
-/** Which place modal is open, and for whose turn it was opened. */
-interface OpenPlace {
-  seat: number;
-  place: LocationId;
-}
-
 export function GameView({ gameId, roomId, isHost }: Props) {
   const router = useRouter();
   const me = useUserContext(); // User | null, with me._id: Id<"users">
   const view = useQuery(api.game.getGame, { gameId });
   const act = useMutation(api.game.act);
+  const setUiMutation = useMutation(api.game.setUi);
   const [pending, setPending] = useState(false);
-  const [open, setOpen] = useState<OpenPlace | null>(null);
+  // Place modals are shared through the game state; this only remembers a
+  // modal a *watching* player has dismissed for themselves.
+  const [hiddenKey, setHiddenKey] = useState<string | null>(null);
   const [weekend, setWeekend] = useState<WeekendInfo | null>(null);
 
   const run = useCallback(
@@ -52,15 +48,12 @@ export function GameView({ gameId, roomId, isHost }: Props) {
         const res = await act({ gameId, action });
         if (res.ok) {
           if (res.weekEnded) {
-            // Week is over: cancel whatever place they were in. The engine
-            // has already moved them home; the weekend modal opens from the
-            // lastEvent effect below.
-            setOpen(null);
-            toast.info("📅 The week has ended", { duration: 5000 });
-          } else {
-            toast.success(res.message);
+            // Nothing to do here: the engine already closed the place and
+            // sent the player home, and the toast + weekend modal reach
+            // every player through the shared game state (effects below).
           }
-        } else toast.error(res.error);
+        }
+        // Success and error toasts also come from the shared state.
         return res.ok;
       } catch (e) {
         toast.error(e instanceof Error ? e.message : "Something went wrong");
@@ -71,6 +64,29 @@ export function GameView({ gameId, roomId, isHost }: Props) {
     },
     [act, gameId],
   );
+
+  // Show every toast the active player sees, to every player.
+  const lastNoticeAt = useRef<number | null>(null);
+  const notice = view?.game.core.lastNotice ?? null;
+  useEffect(() => {
+    if (!notice || !view) return;
+    if (lastNoticeAt.current === null) {
+      lastNoticeAt.current = notice.at; // don't replay history on first load
+      return;
+    }
+    if (notice.at <= lastNoticeAt.current) return;
+    lastNoticeAt.current = notice.at;
+    const mine = view.ownedSeats.includes(notice.seat);
+    const who = view.game.core.players[notice.seat]?.name ?? "Player";
+    const text = mine ? notice.text : `${who}: ${notice.text}`;
+    if (notice.kind === "error") toast.error(text);
+    else if (notice.kind === "weekEnd")
+      toast.info("📅 The week has ended", {
+        description: text,
+        duration: 6000,
+      });
+    else toast.success(text);
+  }, [notice, view]);
 
   // Announce each week-rollover event once, to every player (also remote ones).
   const lastEventAt = useRef<number | null>(null);
@@ -83,20 +99,18 @@ export function GameView({ gameId, roomId, isHost }: Props) {
     }
     if (event.at > lastEventAt.current) {
       lastEventAt.current = event.at;
-      // The player whose week ended gets the weekend modal; everyone else
-      // (remote players) just gets a toast.
-      if (view?.ownedSeats.includes(event.seat)) {
-        setOpen(null);
+      // Everyone sees the weekend recap of the player whose week just ended.
+      if (view) {
         setWeekend({
-          playerName: view.game.core.players[event.seat]?.name ?? "You",
+          playerName: view.game.core.players[event.seat]?.name ?? "Player",
           week: (view.game.core.players[event.seat]?.week ?? 2) - 1,
+          nextPlayerName:
+            view.game.core.players.length > 1
+              ? (view.game.core.players[view.game.core.currentSeat]?.name ??
+                null)
+              : null,
           title: event.title,
           description: event.description,
-        });
-      } else {
-        toast.info(`🎲 ${event.title}`, {
-          description: event.description,
-          duration: 7000,
         });
       }
     }
@@ -115,8 +129,9 @@ export function GameView({ gameId, roomId, isHost }: Props) {
       canAct: game.core.status === "active" && mySeat !== null && !pending,
       pending,
       run,
+      setUi: (key, value) => void setUiMutation({ gameId, key, value }),
     };
-  }, [view, gameId, pending, run]);
+  }, [view, gameId, pending, run, setUiMutation]);
 
   if (view === undefined)
     return <p className="text-cyan-300/80">Loading game…</p>;
@@ -146,11 +161,16 @@ export function GameView({ gameId, roomId, isHost }: Props) {
   // closes it automatically, with no effect needed.
   // VERIFY: `player.location` is the field MapView reads for "where am I".
   const currentLocation = ctx.player.location as LocationId;
+  const shared = game.core.openPlace ?? null;
+  const sharedKey = shared
+    ? `${shared.seat}-${shared.place}-${shared.at}`
+    : null;
   const modalPlace: LocationId | null =
-    open &&
-    open.seat === game.core.currentSeat &&
-    open.place === currentLocation
-      ? open.place
+    shared &&
+    shared.seat === game.core.currentSeat &&
+    shared.place === currentLocation &&
+    sharedKey !== hiddenKey
+      ? (shared.place as LocationId)
       : null;
 
   return (
@@ -205,12 +225,10 @@ export function GameView({ gameId, roomId, isHost }: Props) {
               player={{ name: ctx.player.name, avatarUrl: ctx.player.avatar }}
               // VERIFY: copy the exact move action from MapView's run({ ... }) call
               onTravel={(id) => void run({ type: "moveTo", locationId: id })}
-              onEnter={(id) =>
-                setOpen({ seat: game.core.currentSeat, place: id })
-              }
+              onEnter={(id) => void run({ type: "openPlace", locationId: id })}
               onArrive={(id) => {
-                if (ctx.canAct)
-                  setOpen({ seat: game.core.currentSeat, place: id });
+                if (ctx.canAct && !weekend)
+                  void run({ type: "openPlace", locationId: id });
               }}
               disabled={!ctx.canAct}
               disabledReason={`Waiting for ${waitingFor ?? "another player"}…`}
@@ -218,7 +236,15 @@ export function GameView({ gameId, roomId, isHost }: Props) {
 
             <WeekendModal info={weekend} onClose={() => setWeekend(null)} />
 
-            <PlaceModal locationId={modalPlace} onClose={() => setOpen(null)}>
+            <PlaceModal
+              locationId={modalPlace}
+              onClose={() => {
+                // The active player closes it for everyone; a watcher only
+                // hides it on their own screen.
+                if (ctx.canAct) void run({ type: "closePlace" });
+                else setHiddenKey(sharedKey);
+              }}
+            >
               <LocationPanel />
             </PlaceModal>
 

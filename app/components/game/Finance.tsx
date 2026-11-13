@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
 import { INTEREST_RATE } from "@/lib/game/engine";
 import { useGame } from "./GameContext";
 import { ActionButton, ScreenCard } from "./ui";
+import { useSharedState } from "@/hooks/useSharedState";
 
 const ROW =
   "accent-card flex items-center justify-between gap-2 rounded-xl p-3 transition hover:border-cyan-400/70 hover:shadow-[0_0_14px_var(--accent-400)]";
@@ -14,8 +14,8 @@ const INPUT =
 
 export function Bank() {
   const { player, core } = useGame();
-  const [amount, setAmount] = useState(50);
-  const [qty, setQty] = useState(1);
+  const [amount, setAmount] = useSharedState<number>("bank-amount", 50);
+  const [qty, setQty] = useSharedState<number>("bank-qty", 1);
   const { savings, lastInterestWeek } = player.bankAccount;
   const interestDone = lastInterestWeek === player.week;
 

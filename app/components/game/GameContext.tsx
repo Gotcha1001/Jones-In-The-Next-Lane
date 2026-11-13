@@ -19,6 +19,8 @@ export interface GameCtxValue {
   canAct: boolean;
   pending: boolean;
   run: (action: GameAction) => Promise<boolean>;
+  /** Share a UI selection/input with every player (see useSharedState). */
+  setUi: (key: string, value: string | number | boolean) => void;
 }
 
 export const GameCtx = createContext<GameCtxValue | null>(null);
