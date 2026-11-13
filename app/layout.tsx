@@ -12,6 +12,7 @@ import Provider from "./provider";
 import { AppSidebar } from "./components/Appsidebar";
 import { AppearanceProvider } from "./context/AppearanceContext";
 import { CyberRain } from "./components/CyberRain";
+import { AppPreloader } from "./components/AppPreloader";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({
@@ -54,23 +55,25 @@ export default function RootLayout({
           className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         >
           <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
-            <ConvexClientProvider>
-              <Provider>
-                <AppearanceProvider>
-                  <SidebarProvider>
-                    <AppSidebar />
-                    <SidebarInset className="min-w-0">
-                      {/* Rain sits inside the page area only, so it can never
+            <AppPreloader>
+              <ConvexClientProvider>
+                <Provider>
+                  <AppearanceProvider>
+                    <SidebarProvider>
+                      <AppSidebar />
+                      <SidebarInset className="min-w-0">
+                        {/* Rain sits inside the page area only, so it can never
                           fall over the sidebar. Keep it the FIRST child. */}
-                      <CyberRain />
-                      <Navbar />
-                      <main className="p-4 lg:p-6">{children}</main>
-                    </SidebarInset>
-                  </SidebarProvider>
-                  <Toaster richColors />
-                </AppearanceProvider>
-              </Provider>
-            </ConvexClientProvider>
+                        <CyberRain />
+                        <Navbar />
+                        <main className="p-4 lg:p-6">{children}</main>
+                      </SidebarInset>
+                    </SidebarProvider>
+                    <Toaster richColors />
+                  </AppearanceProvider>
+                </Provider>
+              </ConvexClientProvider>
+            </AppPreloader>
           </ThemeProvider>
         </body>
       </html>
