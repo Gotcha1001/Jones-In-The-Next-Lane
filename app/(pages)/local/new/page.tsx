@@ -76,6 +76,10 @@ export default function NewLocalGamePage() {
     Array.from({ length: MAX_LOCAL_PLAYERS }, (_, i) => draft(i)),
   );
   const [busy, setBusy] = useState<boolean>(false);
+  // Solo only: play against the computer (Mr Jones)?
+  const [rival, setRival] = useState<"none" | "easy" | "medium" | "hard">(
+    "none",
+  );
 
   const seat = Math.min(activeSeat, count - 1);
   const active = players[seat];
@@ -95,7 +99,10 @@ export default function NewLocalGamePage() {
   const start = async (): Promise<void> => {
     setBusy(true);
     try {
-      const gameId = await create({ players: players.slice(0, count) });
+      const gameId = await create({
+        players: players.slice(0, count),
+        vsComputer: count === 1 && rival !== "none" ? rival : undefined,
+      });
       router.push(`/play/${gameId}`);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Couldn't start the game");
@@ -171,6 +178,50 @@ export default function NewLocalGamePage() {
           );
         })}
       </div>
+
+      {/* computer opponent (solo only) */}
+      {count === 1 && (
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="font-mono text-xs tracking-[0.3em] text-muted-foreground">
+            RIVAL
+          </span>
+          {(
+            [
+              ["none", "NONE"],
+              ["easy", "MR JONES · EASY"],
+              ["medium", "MR JONES · MEDIUM"],
+              ["hard", "MR JONES · HARD"],
+            ] as const
+          ).map(([id, label]) => {
+            const on = rival === id;
+            return (
+              <button
+                key={id}
+                type="button"
+                onClick={() => setRival(id)}
+                style={{
+                  clipPath: clip(8),
+                  borderColor: on ? ACCENT : "transparent",
+                  boxShadow: on ? `0 0 18px ${mix(ACCENT, 55)}` : undefined,
+                }}
+                className={`h-11 border px-4 font-mono text-xs font-bold tracking-widest transition ${
+                  on
+                    ? "bg-cyan-400 text-black"
+                    : "bg-white/5 text-white/70 hover:bg-cyan-400/15 hover:text-white"
+                }`}
+              >
+                {label}
+              </button>
+            );
+          })}
+          {rival !== "none" && (
+            <p className="w-full text-xs text-muted-foreground">
+              🤖 Mr Jones plays his own weeks for the same win conditions. You
+              watch everything he does, live.
+            </p>
+          )}
+        </div>
+      )}
 
       {/* seat tabs (hot-seat only) */}
       {count > 1 && (

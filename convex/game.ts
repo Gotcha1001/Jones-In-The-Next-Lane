@@ -1,10 +1,20 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { internalMutation, mutation, query } from "./_generated/server";
+import { internal } from "./_generated/api";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import { getCurrentUser, requireUser } from "./lib/auth";
-import { vGameAction, vGoals } from "../lib/game/validators";
+import {
+  vBotLevel,
+  vGameAction,
+  vGoals,
+  vLocationId,
+} from "../lib/game/validators";
 import type { Goals, Seat } from "../lib/game/validators";
+import type { GameAction } from "../lib/game/validators";
+import { AVATARS } from "../lib/avatars";
+import { chooseBotPlan } from "../lib/game/bot";
+import type { BotPlan } from "../lib/game/bot";
 import { createGame, DEFAULT_GOALS, performAction } from "../lib/game/engine";
 import { MAX_LOCAL_PLAYERS } from "../lib/game/constants";
 
@@ -23,6 +33,8 @@ async function canView(
 /** Which seat (if any) is `userId` allowed to act as right now? */
 function actingSeat(game: Doc<"games">, userId: Id<"users">): number | null {
   const current = game.core.currentSeat;
+  // Mr Jones plays his own turns (see botStep) — nobody else can.
+  if (game.seats.find((s: Seat) => s.seat === current)?.bot) return null;
   if (game.mode === "local") return game.ownerId === userId ? current : null;
   const seat = game.seats.find((s: Seat) => s.seat === current);
   return seat?.userId === userId ? current : null;
@@ -47,7 +59,7 @@ export const getGame = query({
     if (!game || !(await canView(ctx, game, me._id))) return null;
     const ownedSeats =
       game.mode === "local"
-        ? game.seats.map((s) => s.seat)
+        ? game.seats.filter((s) => !s.bot).map((s) => s.seat)
         : game.seats.filter((s) => s.userId === me._id).map((s) => s.seat);
     return { game, meId: me._id, mySeat: actingSeat(game, me._id), ownedSeats };
   },
@@ -117,8 +129,12 @@ const vLocalPlayer = v.object({
 
 /** Solo / hot-seat game on one device (the original Jones experience). */
 export const createLocalGame = mutation({
-  args: { players: v.array(vLocalPlayer) },
-  handler: async (ctx, { players }): Promise<Id<"games">> => {
+  args: {
+    players: v.array(vLocalPlayer),
+    /** Play a solo game against Mr Jones (the computer) at this level. */
+    vsComputer: v.optional(vBotLevel),
+  },
+  handler: async (ctx, { players, vsComputer }): Promise<Id<"games">> => {
     const me = await requireUser(ctx);
     if (players.length < 1 || players.length > MAX_LOCAL_PLAYERS) {
       throw new Error(`Local games take 1–${MAX_LOCAL_PLAYERS} players.`);
@@ -128,6 +144,16 @@ export const createLocalGame = mutation({
       avatar: p.avatar,
       goals: (p.goals ?? DEFAULT_GOALS) satisfies Goals,
     }));
+    if (vsComputer) {
+      if (named.length !== 1)
+        throw new Error("The computer opponent is for solo games.");
+      // Mr Jones plays for the same win conditions, with a different face.
+      named.push({
+        name: "Mr Jones",
+        avatar: AVATARS.find((a) => a !== named[0].avatar) ?? AVATARS[0],
+        goals: named[0].goals,
+      });
+    }
     const now = Date.now();
     return await ctx.db.insert("games", {
       ownerId: me._id,
@@ -137,11 +163,127 @@ export const createLocalGame = mutation({
         userId: null,
         name: p.name,
         avatar: p.avatar,
+        ...(vsComputer && i === 1 ? { bot: vsComputer } : {}),
       })),
       core: createGame(named),
       createdAt: now,
       updatedAt: now,
     });
+  },
+});
+
+// ── Mr Jones (the computer opponent) ────────────────────────────────────────
+const BOT_START_MS = 2500; // pause so everyone can read the weekend recap
+const BOT_TICK_MS = 1100; // time between visible steps
+const BOT_WALK_MS = 2000; // time for the walking animation
+
+const vUiValue = v.union(v.string(), v.number(), v.boolean());
+const vBotPlan = v.object({
+  action: vGameAction,
+  at: vLocationId,
+  ui: v.optional(v.record(v.string(), vUiValue)),
+});
+
+/**
+ * One visible step of Mr Jones' turn, then schedules the next one. A "plan"
+ * (e.g. study Business at the university) is carried through the steps:
+ * close the old place → walk → open the place → pick the options → press the
+ * button. Every step is written to the shared game state, so other players
+ * see exactly what he does.
+ */
+export const botStep = internalMutation({
+  args: { gameId: v.id("games"), plan: v.optional(vBotPlan) },
+  handler: async (ctx, { gameId, plan }): Promise<void> => {
+    const game = await ctx.db.get(gameId);
+    if (!game || game.core.status !== "active") return;
+    const seat = game.core.currentSeat;
+    const level = game.seats.find((s: Seat) => s.seat === seat)?.bot;
+    if (!level) return; // not his turn (any more)
+
+    const now = Date.now();
+    const rng = Math.random;
+    let core = game.core;
+    const me = core.players[seat];
+    const chosen: BotPlan = plan ??
+      chooseBotPlan(core, seat, level, rng) ?? {
+        action: { type: "endTurn" },
+        at: me.location,
+      };
+
+    let next: BotPlan | undefined = chosen;
+    let delay = BOT_TICK_MS;
+    let step: GameAction | null = null;
+
+    if (chosen.action.type === "endTurn") {
+      step = chosen.action;
+      next = undefined;
+    } else if (me.location !== chosen.at) {
+      if (core.openPlace) {
+        step = { type: "closePlace" };
+      } else {
+        step = { type: "moveTo", locationId: chosen.at };
+        delay = BOT_WALK_MS;
+      }
+    } else if (!core.openPlace) {
+      step = { type: "openPlace", locationId: chosen.at };
+    } else if (
+      chosen.ui &&
+      Object.entries(chosen.ui).some(([k, val]) => core.ui?.[k] !== val)
+    ) {
+      // Show his selections on the shared place screen before he acts.
+      core = { ...core, ui: { ...(core.ui ?? {}), ...chosen.ui } };
+    } else {
+      step = chosen.action;
+      next = undefined;
+    }
+
+    let weekEnded = false;
+    if (step) {
+      let out = performAction(core, seat, step, rng, now);
+      if (!out.ok) {
+        // Never get stuck: if a plan fails, he just ends his week.
+        out = performAction(core, seat, { type: "endTurn" }, rng, now);
+        next = undefined;
+      }
+      if (!out.ok) return;
+      core = out.core;
+      weekEnded = out.weekEnded;
+      if (weekEnded) next = undefined;
+    }
+
+    await ctx.db.patch(gameId, { core, updatedAt: now });
+    if (core.status !== "active") return;
+
+    const stillBot = game.seats.find(
+      (s: Seat) => s.seat === core.currentSeat,
+    )?.bot;
+    if (stillBot) {
+      await ctx.scheduler.runAfter(
+        weekEnded ? BOT_START_MS : delay,
+        internal.game.botStep,
+        { gameId, plan: next },
+      );
+    }
+  },
+});
+
+/**
+ * Safety net: if a game is opened while it is Mr Jones' turn but nothing has
+ * happened for a while (e.g. the server was restarted), restart his turn.
+ */
+export const resumeBot = mutation({
+  args: { gameId: v.id("games") },
+  handler: async (ctx, { gameId }): Promise<void> => {
+    const me = await requireUser(ctx);
+    const game = await ctx.db.get(gameId);
+    if (!game || game.ownerId !== me._id || game.core.status !== "active")
+      return;
+    const isBot = game.seats.find(
+      (s: Seat) => s.seat === game.core.currentSeat,
+    )?.bot;
+    if (!isBot || Date.now() - game.updatedAt < 8000) return;
+    await ctx.db.patch(gameId, { updatedAt: Date.now() });
+    await ctx.scheduler.runAfter(0, internal.game.botStep, { gameId });
   },
 });
 
@@ -185,6 +327,15 @@ export const act = mutation({
     await ctx.db.patch(gameId, { core: outcome.core, updatedAt: Date.now() });
     if (outcome.core.status === "finished" && game.roomId) {
       await ctx.db.patch(game.roomId, { status: "finished" });
+    }
+    // The turn just passed to the computer: let him start playing.
+    if (
+      outcome.core.status === "active" &&
+      game.seats.find((s: Seat) => s.seat === outcome.core.currentSeat)?.bot
+    ) {
+      await ctx.scheduler.runAfter(BOT_START_MS, internal.game.botStep, {
+        gameId,
+      });
     }
     return {
       ok: true,
