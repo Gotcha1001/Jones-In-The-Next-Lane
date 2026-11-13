@@ -33,7 +33,7 @@ const DEFAULT_BOT_AUTO_CLOSE_MS = 3500;
    glitch title, scanlines, grid floor). Self-contained and prefixed `wk-` so
    it never clashes with the home page's own `.cp-*` styles. Colours follow the
    accent picked on the Appearance page and the light/dark mode. */
-const CSS = `
+export const CSS = `
 .wk{--c1:var(--accent-600,#0d9488);--c2:#0891b2;--c3:#db2777;
   --wk-surface:#ffffff;--wk-fg:#0f172a;--wk-muted:#475569;--wk-faint:#64748b;
   --wk-line:rgba(15,23,42,.16);--wk-tint:rgba(15,23,42,.05);--wk-btn-fg:#ffffff;--wk-blend:multiply}

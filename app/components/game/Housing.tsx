@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   apartmentTiers,
   homeActivities,
@@ -12,6 +13,7 @@ import type { HomeActivity } from "@/lib/game/validators";
 import { RENT_INTERVAL_WEEKS } from "@/lib/game/engine";
 import { useGame } from "./GameContext";
 import { ActionButton, ScreenCard } from "./ui";
+import ActivityModal, { type ActivityInfo } from "./ActivityModal";
 
 const ROW =
   "accent-card flex items-center justify-between rounded-xl p-3 transition hover:border-cyan-400/70 hover:shadow-[0_0_14px_var(--accent-400)]";
@@ -21,6 +23,13 @@ const TIER_CURRENT =
   "accent-card rounded-xl border-cyan-400 p-3 shadow-[0_0_18px_var(--accent-400)]";
 const NAME = "font-medium text-white";
 const META = "text-xs text-cyan-300/80";
+
+/* Which home activities open the video pop-up ("meditate" has no video). */
+const ACTIVITY_KIND: Partial<Record<HomeActivity, ActivityInfo["kind"]>> = {
+  tv: "tv",
+  games: "games",
+  meditate: "meditate",
+};
 
 export function RentalOffice() {
   const { player } = useGame();
@@ -110,6 +119,10 @@ export function RentalOffice() {
 
 export function Apartment() {
   const { player } = useGame();
+  const [activity, setActivity] = useState<ActivityInfo | null>(null);
+  // Pure, monotonic session id (replaces Date.now(), which React forbids in render).
+  const [sessionCount, setSessionCount] = useState(0);
+
   if (!player.rental.hasApartment) {
     return (
       <ScreenCard
@@ -121,6 +134,24 @@ export function Apartment() {
     );
   }
   const activities = Object.keys(homeActivities) as HomeActivity[];
+
+  const openActivity = (a: HomeActivity): void => {
+    const kind = ACTIVITY_KIND[a];
+    if (!kind) return;
+    const at = sessionCount + 1;
+    setSessionCount(at);
+    setActivity({
+      playerName: player.name,
+      playerAvatar: player.avatar,
+      isBot: false,
+      kind,
+      label: homeActivities[a].name,
+      happiness: homeActivities[a].happiness,
+      time: homeActivities[a].time,
+      at,
+    });
+  };
+
   return (
     <ScreenCard
       title="Your apartment"
@@ -134,13 +165,16 @@ export function Apartment() {
           😴 Rest (30⏱, +10 😊)
         </ActionButton>
         {activities.map((a) => (
-          <ActionButton
-            key={a}
-            action={{ type: "homeActivity", activity: a }}
-            variant="outline"
-          >
-            {homeActivities[a].name} ({homeActivities[a].time}⏱)
-          </ActionButton>
+          // Capture phase: opens the pop-up, then the button's own click
+          // still runs and performs the game action.
+          <span key={a} onClickCapture={() => openActivity(a)}>
+            <ActionButton
+              action={{ type: "homeActivity", activity: a }}
+              variant="outline"
+            >
+              {homeActivities[a].name} ({homeActivities[a].time}⏱)
+            </ActionButton>
+          </span>
         ))}
       </div>
       <h4 className="accent-gradient-text mb-2 mt-4 text-sm font-semibold">
@@ -163,6 +197,8 @@ export function Apartment() {
           </div>
         ))}
       </div>
+
+      <ActivityModal info={activity} onClose={() => setActivity(null)} />
     </ScreenCard>
   );
 }

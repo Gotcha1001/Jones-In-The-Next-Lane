@@ -3,13 +3,14 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { PlayerAvatar } from "@/app/components/PlayerAvatar";
+import { CSS } from "./WeekendModal";
 
 export interface ActivityInfo {
   playerName: string;
   playerAvatar?: string;
   /** True when the computer (Mr Jones) did this → pop-up closes by itself. */
   isBot?: boolean;
-  kind: "tv" | "games";
+  kind: "tv" | "games" | "meditate";
   /** e.g. "Watch TV", "Play Video Games", "Gaming Zone". */
   label: string;
   happiness: number;
@@ -28,7 +29,20 @@ interface Props {
 
 const DEFAULT_BOT_AUTO_CLOSE_MS = 6000;
 
-const SCENES = {
+interface Scene {
+  /** null = image only (no video). */
+  src: string | null;
+  poster: string;
+  hasAudio: boolean;
+  portrait: boolean;
+  kicker: string;
+  headline: [string, string];
+  sys: string;
+  verb: string;
+  icon: string;
+}
+
+const SCENES: Record<ActivityInfo["kind"], Scene> = {
   tv: {
     src: "/videos/tv.mp4",
     poster: "/tv.jpg",
@@ -51,13 +65,25 @@ const SCENES = {
     verb: "playing video games",
     icon: "🎮",
   },
-} as const;
+  meditate: {
+    src: null,
+    poster: "/meditate.jpg",
+    hasAudio: false,
+    portrait: false,
+    kicker: "Now meditating",
+    headline: ["INNER", "PEACE"],
+    sys: "SYS.ZEN_LINK",
+    verb: "meditating",
+    icon: "🧘",
+  },
+};
 
 /**
- * Cyberpunk video pop-up shown while someone watches TV or plays games.
+ * Cyberpunk pop-up shown while someone watches TV, plays games or meditates.
  * Same frame / glitch title / scanlines / grid floor as the weekend recap
  * (shared `wk-` styles), but wider so the video gets the room it needs.
  * The portrait gaming clip is centred at full height instead of letterboxed.
+ * Meditate has no video: it shows its image instead.
  */
 export default function ActivityModal({
   info,
@@ -95,7 +121,9 @@ export default function ActivityModal({
 
   const scene = info ? SCENES[info.kind] : null;
   const who = info ? (info.isBot ? info.playerName : "You") : "";
-  const showVideo = info !== null && failedAt !== info.at && !reduceMotion;
+  const videoSrc = scene?.src ?? null;
+  const showVideo =
+    info !== null && videoSrc !== null && failedAt !== info.at && !reduceMotion;
   const sound = info !== null && soundOnAt === info.at;
 
   return (
@@ -107,7 +135,7 @@ export default function ActivityModal({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
         >
-          <style>{WK_CSS}</style>
+          <style>{CSS}</style>
 
           {/* Atmosphere: scanlines + moving neon grid floor */}
           <div className="wk-scan pointer-events-none fixed inset-0" />
@@ -185,7 +213,7 @@ export default function ActivityModal({
                 </div>
 
                 <div className="relative space-y-4 p-4 sm:p-6">
-                  {/* Video stage */}
+                  {/* Video / image stage */}
                   <div className="relative mx-auto flex justify-center">
                     <div
                       className={`relative overflow-hidden bg-black ring-1 ring-[color:var(--c1)] shadow-[0_0_28px_color-mix(in_oklab,var(--c1)_45%,transparent)] ${
@@ -194,10 +222,10 @@ export default function ActivityModal({
                           : "aspect-video w-full"
                       }`}
                     >
-                      {showVideo ? (
+                      {showVideo && videoSrc ? (
                         <video
                           key={info.at}
-                          src={scene.src}
+                          src={videoSrc}
                           poster={scene.poster}
                           autoPlay
                           loop
@@ -219,13 +247,15 @@ export default function ActivityModal({
                       {/* Soft vignette + REC-style corner tag */}
                       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_55%,rgba(0,0,0,0.55))]" />
                       <div className="wk-scan pointer-events-none absolute inset-0 opacity-70" />
-                      <span className="absolute left-3 top-3 flex items-center gap-2 bg-black/60 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.25em] text-white">
-                        <span
-                          className="h-1.5 w-1.5 rounded-full bg-red-500"
-                          style={{ animation: "wk-blink 1.4s infinite" }}
-                        />
-                        Live
-                      </span>
+                      {showVideo && (
+                        <span className="absolute left-3 top-3 flex items-center gap-2 bg-black/60 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.25em] text-white">
+                          <span
+                            className="h-1.5 w-1.5 rounded-full bg-red-500"
+                            style={{ animation: "wk-blink 1.4s infinite" }}
+                          />
+                          Live
+                        </span>
+                      )}
 
                       {showVideo && scene.hasAudio && (
                         <button
