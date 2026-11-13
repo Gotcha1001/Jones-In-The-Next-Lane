@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { getCurrentUser, requireUser } from "./lib/auth";
 
@@ -77,7 +78,7 @@ export const loadSave = mutation({
     const save = await ctx.db.get(saveId);
     if (!save || save.userId !== me._id) throw new Error("Save not found.");
     const now = Date.now();
-    return await ctx.db.insert("games", {
+    const gameId = await ctx.db.insert("games", {
       ownerId: me._id,
       mode: "local",
       seats: save.seats.map((s) => ({ ...s, userId: null })),
@@ -85,6 +86,14 @@ export const loadSave = mutation({
       createdAt: now,
       updatedAt: now,
     });
+    // Resuming in the middle of Mr Jones' turn: let him carry on.
+    if (
+      save.core.status === "active" &&
+      save.seats.find((s) => s.seat === save.core.currentSeat)?.bot
+    ) {
+      await ctx.scheduler.runAfter(2500, internal.game.botStep, { gameId });
+    }
+    return gameId;
   },
 });
 

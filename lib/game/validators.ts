@@ -113,12 +113,21 @@ export const vPlayer = v.object({
   goals: vGoals,
 });
 
+/** Computer opponent difficulty (a seat with this set is "Mr Jones"). */
+export const vBotLevel = v.union(
+  v.literal("easy"),
+  v.literal("medium"),
+  v.literal("hard"),
+);
+
 export const vSeat = v.object({
   seat: v.number(),
   /** null in local (hot-seat) games where one account controls every seat. */
   userId: v.union(v.id("users"), v.null()),
   name: v.string(),
   avatar: v.string(),
+  /** Set when this seat is played by the computer. */
+  bot: v.optional(vBotLevel),
 });
 
 export const vStock = v.object({
