@@ -147,6 +147,11 @@ function studyTarget(
   for (const title of p.goals.winningJobs) {
     const job = findJob(title);
     if (!job) continue;
+    // Bots don't study specialist subjects, so skip winning jobs that need one.
+    const coreOnly = Object.keys(job.requiredSubjects).every((id) =>
+      (SUBJECT_IDS as readonly string[]).includes(id),
+    );
+    if (!coreOnly) continue;
     const deficit: Partial<Record<CoreSubjectId, number>> = {};
     let total = 0;
     for (const s of SUBJECT_IDS) {
