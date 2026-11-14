@@ -5,6 +5,7 @@
 import {
   useEffect,
   useMemo,
+  useRef,
   useState,
   useSyncExternalStore,
   type CSSProperties,
@@ -51,8 +52,6 @@ interface CityMapProps {
   travelDurationMs?: number;
   className?: string;
 }
-
-const MARKER_SIZE = "clamp(64px, 8.5vw, 124px)";
 
 const MOBILE_QUERY = "(max-width: 767px)";
 function subscribeMobile(callback: () => void): () => void {
@@ -103,6 +102,40 @@ export default function CityMap({
     setPending(null);
     setWalk({ from: previousId, to: currentLocationId });
   }
+
+  // Size everything from the MAP's own box, not the browser window, so the
+  // layout holds up when the sidebar opens or the window is resized.
+  const mapRef = useRef<HTMLElement>(null);
+  const [box, setBox] = useState({ w: 1200, h: 700 });
+  useEffect(() => {
+    const el = mapRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([entry]) => {
+      const { width, height } = entry.contentRect;
+      setBox((prev) =>
+        Math.abs(prev.w - width) < 1 && Math.abs(prev.h - height) < 1
+          ? prev
+          : { w: width, h: height },
+      );
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const clamp = (min: number, v: number, max: number): number =>
+    Math.max(min, Math.min(max, v));
+  // Rows of places are ~23% of the map height apart; each needs room for the
+  // circle PLUS its name label, so the circle is whatever fits in that gap.
+  const markerPx = Math.round(
+    clamp(44, Math.min(0.23 * box.h - 48, 0.2 * box.w, 124), 124),
+  );
+  const labelPx = Math.round(clamp(10, 8 + markerPx * 0.05, 14));
+  // The centre portrait gets the vertical space left between the top-middle
+  // marker's label and the bottom-middle marker's label.
+  const heroH = Math.round(
+    clamp(80, Math.min(0.42 * box.h, 0.74 * box.h - markerPx - 80 - 38), 460),
+  );
+  const heroW = Math.round(heroH * 0.62);
 
   const walking = walk !== null;
   const route = useMemo(
@@ -161,17 +194,18 @@ export default function CityMap({
 
   return (
     <>
-      {/* Mobile: status banner sits above the map so it never covers places */}
+      {/* Status banner sits above the map (below the week bar) so it never covers places */}
       <p
         aria-live="polite"
-        className="mb-2 flex items-center gap-2 rounded-2xl border border-cyan-400/40 bg-black/60 px-4 py-2 text-xs font-medium text-cyan-50 shadow-[0_0_14px_var(--accent-400)] backdrop-blur md:hidden"
+        className="mb-2 flex items-center gap-2 rounded-2xl border border-cyan-400/40 bg-black/60 px-4 py-2 text-xs font-medium text-cyan-50 shadow-[0_0_14px_var(--accent-400)] backdrop-blur"
       >
         <MapPin className="h-4 w-4 shrink-0 text-cyan-400" aria-hidden />
         <span>{status}</span>
       </p>
       <section
+        ref={mapRef}
         aria-label="City map"
-        className={`relative mx-auto h-[72vh] min-h-[480px] w-full max-w-[1500px] overflow-hidden rounded-2xl bg-gray-900 ring-1 ring-cyan-400/40 shadow-[0_0_30px_var(--accent-400)] lg:h-[calc(100vh-8rem)] ${className}`}
+        className={`relative mx-auto h-[72vh] min-h-[480px] w-full max-w-[1500px] overflow-hidden rounded-2xl bg-gray-900 ring-1 ring-cyan-400/40 shadow-[0_0_30px_var(--accent-400)] lg:h-[calc(100vh-11.5rem)] ${className}`}
         style={{
           backgroundImage: "url('/logo1.jpg')",
           backgroundSize: "cover",
@@ -209,20 +243,13 @@ export default function CityMap({
         />
 
         {/* HUD */}
-        <div className="absolute inset-x-3 top-3 z-40 flex items-start justify-end gap-3 md:justify-between">
-          <p
-            aria-live="polite"
-            className="hidden max-w-[80%] md:flex items-center gap-2 rounded-full border border-cyan-400/40 bg-black/60 px-4 py-2 text-sm font-medium text-cyan-50 shadow-[0_0_14px_var(--accent-400)] backdrop-blur"
-          >
-            <MapPin className="h-4 w-4 shrink-0 text-cyan-400" aria-hidden />
-            <span>{status}</span>
-          </p>
+        <div className="absolute inset-x-3 top-3 z-40 flex items-start justify-end gap-3">
           <SoundToggle />
         </div>
 
         {/* Big hero avatar in the middle */}
         <motion.div
-          className="pointer-events-none absolute left-1/2 top-1/2 z-20 -translate-x-1/2 -translate-y-1/2"
+          className="pointer-events-none absolute left-1/2 top-1/2 z-[8] -translate-x-1/2 -translate-y-1/2"
           animate={{ opacity: 1, scale: walking ? 0.95 : 1 }}
           transition={{ duration: 0.4 }}
         >
@@ -264,9 +291,13 @@ export default function CityMap({
             <img
               src={player.avatarUrl}
               alt={player.name}
-              className="h-52 w-36 rounded-xl border-4 border-cyan-400 object-cover shadow-[0_0_60px_var(--accent-400)] md:h-72 md:w-48 lg:h-[44vh] lg:w-64"
+              className="rounded-xl border-4 border-cyan-400 object-cover shadow-[0_0_60px_var(--accent-400)]"
+              style={{ height: heroH, width: heroW }}
             />
-            <div className="mt-2 rounded bg-gradient-to-r from-cyan-500 via-cyan-900 to-black px-3 py-1 text-center font-semibold text-white">
+            <div
+              className="mt-2 rounded bg-gradient-to-r from-cyan-500 via-cyan-900 to-black px-3 py-1 text-center font-semibold text-white"
+              style={{ fontSize: labelPx + 2, maxWidth: heroW }}
+            >
               {player.name}
             </div>
           </motion.div>
@@ -339,7 +370,7 @@ export default function CityMap({
                         ? "bg-cyan-200 shadow-[0_0_22px_var(--accent-400)]"
                         : "bg-cyan-800 shadow-[0_0_12px_var(--accent-400)]"
                   }`}
-                  style={{ width: MARKER_SIZE, height: MARKER_SIZE }}
+                  style={{ width: markerPx, height: markerPx }}
                   whileHover={disabled || walking ? undefined : { scale: 1.1 }}
                   whileTap={disabled || walking ? undefined : { scale: 0.95 }}
                 >
@@ -378,7 +409,13 @@ export default function CityMap({
                     </span>
                   )}
                 </motion.span>
-                <span className="rounded border border-cyan-400/40 bg-black/70 px-2 py-1 text-center text-xs font-semibold text-cyan-50 shadow-[0_0_10px_var(--accent-400)] backdrop-blur-sm transition group-hover:border-cyan-400 sm:text-sm">
+                <span
+                  className="rounded border border-cyan-400/40 bg-black/70 px-2 py-1 text-center font-semibold leading-tight text-cyan-50 shadow-[0_0_10px_var(--accent-400)] backdrop-blur-sm transition group-hover:border-cyan-400"
+                  style={{
+                    fontSize: labelPx,
+                    maxWidth: Math.max(markerPx * 1.7, 110),
+                  }}
+                >
                   {isCurrent ? `Enter ${place.name} ▸` : place.name}
                 </span>
               </button>
