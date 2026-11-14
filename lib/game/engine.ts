@@ -62,7 +62,18 @@ export const DEFAULT_GOALS: Goals = {
   cash: 10000,
   education: 80,
   happiness: 90,
-  winningJobs: ["Executive", "Engineer", "Startup Founder", "Investor"],
+  winningJobs: [
+    // Core careers
+    "Executive",
+    "Engineer",
+    "Startup Founder",
+    "Investor",
+    // Specialist careers (the top job of each specialist subject)
+    "Surgeon",
+    "Judge",
+    "Chief Scientist",
+    "Creative Director",
+  ],
 };
 
 // ── Small helpers ───────────────────────────────────────────────────────────
