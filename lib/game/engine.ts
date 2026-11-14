@@ -22,10 +22,13 @@ import {
   healingServices,
   HEALING_TIME,
   homeActivities,
+  CORE_SUBJECT_IDS,
   INITIAL_STOCKS,
   leisureActivities,
   MEAL_TIME,
   meals,
+  subjectLevel,
+  subjectName,
   tierFromRent,
   tierOrder,
   upgradeFee,
@@ -71,11 +74,11 @@ function setAt<T>(arr: readonly T[], index: number, value: T): T[] {
   return arr.map((item, i) => (i === index ? value : item));
 }
 
+/** Education = average of the four CORE subjects. Specialist subjects
+ *  (medicine, law, science, design) only unlock jobs; they don't dilute it. */
 export function averageEducation(p: PlayerState): number {
-  const levels = Object.values(p.subjects);
-  return levels.length
-    ? Math.floor(levels.reduce((s, l) => s + l, 0) / levels.length)
-    : 0;
+  const levels = CORE_SUBJECT_IDS.map((id) => p.subjects[id]);
+  return Math.floor(levels.reduce((s, l) => s + l, 0) / levels.length);
 }
 
 // ── Construction ────────────────────────────────────────────────────────────
@@ -96,6 +99,10 @@ export function createPlayer(seat: number, input: NewPlayerInput): PlayerState {
       computerScience: 0,
       business: 0,
       liberalArts: 0,
+      medicine: 0,
+      law: 0,
+      science: 0,
+      design: 0,
     },
     experience: 0,
     rental: {
@@ -172,7 +179,7 @@ export function evaluateGoals(p: PlayerState): GoalProgress {
     if (!job) return false;
     return (
       Object.entries(job.requiredSubjects) as [SubjectId, number][]
-    ).every(([subject, level]) => p.subjects[subject] >= level);
+    ).every(([subject, level]) => subjectLevel(p.subjects, subject) >= level);
   });
   const hasCash = p.cash >= g.cash;
   return {
@@ -346,7 +353,7 @@ function applyAction(
         return fail("Study at the University, or at home in your apartment.");
       const hours = atHome ? 1 : Math.floor(action.hours);
       if (hours < 1 || hours > 10) return fail("Study between 1 and 10 hours.");
-      const current = p.subjects[action.subject];
+      const current = subjectLevel(p.subjects, action.subject);
       if (current >= 100) return fail("You've already mastered that subject!");
       const gain = Math.floor(2 * hours * (1 + current / 100));
       const subjects = {
@@ -359,7 +366,7 @@ function applyAction(
       };
       return done(
         { ...next, education: averageEducation(next) },
-        `You studied ${action.subject} and gained ${gain} points!`,
+        `You studied ${subjectName(action.subject)} and gained ${gain} points!`,
         atHome ? 15 : hours,
       );
     }
@@ -417,8 +424,11 @@ function applyAction(
       const missing = (
         Object.entries(job.requiredSubjects) as [SubjectId, number][]
       )
-        .filter(([s, level]) => p.subjects[s] < level)
-        .map(([s, level]) => `${s}: ${p.subjects[s]}/${level}`);
+        .filter(([s, level]) => subjectLevel(p.subjects, s) < level)
+        .map(
+          ([s, level]) =>
+            `${subjectName(s)}: ${subjectLevel(p.subjects, s)}/${level}`,
+        );
       if (missing.length)
         return fail(
           `You don't meet the subject requirements: ${missing.join(", ")}`,
@@ -1048,7 +1058,7 @@ export function jobIsAvailable(p: PlayerState, title: string): boolean {
   if (!job) return false;
   if (p.experience < job.expReq) return false;
   return (Object.entries(job.requiredSubjects) as [SubjectId, number][]).every(
-    ([s, level]) => p.subjects[s] >= level,
+    ([s, level]) => subjectLevel(p.subjects, s) >= level,
   );
 }
 
@@ -1060,6 +1070,6 @@ export function jobsWithinReach(p: PlayerState): typeof jobs {
     if (job.expReq > p.experience + 30) return false;
     return (
       Object.entries(job.requiredSubjects) as [SubjectId, number][]
-    ).every(([s, level]) => level <= p.subjects[s] + 20);
+    ).every(([s, level]) => level <= subjectLevel(p.subjects, s) + 20);
   });
 }
