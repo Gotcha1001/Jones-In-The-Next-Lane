@@ -5,6 +5,7 @@ import {
   apartmentTiers,
   homeActivities,
   SUBJECTS,
+  subjectLevel,
   tierFromRent,
   tierOrder,
   upgradeFee,
@@ -197,12 +198,14 @@ export function Apartment() {
           <div key={s.id} className={ROW}>
             <div>
               <p className="text-sm font-medium text-white">{s.name}</p>
-              <p className={META}>Level {player.subjects[s.id]}/100</p>
+              <p className={META}>
+                Level {subjectLevel(player.subjects, s.id)}/100
+              </p>
             </div>
             <ActionButton
               action={{ type: "studySubject", subject: s.id, hours: 1 }}
               variant="outline"
-              disabled={player.subjects[s.id] >= 100}
+              disabled={subjectLevel(player.subjects, s.id) >= 100}
             >
               Study
             </ActionButton>

@@ -23,6 +23,8 @@ import {
   meals,
   tierFromRent,
   upgradeFee,
+  CORE_SUBJECT_IDS,
+  type CoreSubjectId,
 } from "./data/services";
 import type {
   GameAction,
@@ -109,12 +111,9 @@ const TUNING: Record<BotLevel, Tuning> = {
   },
 };
 
-const SUBJECT_IDS: readonly SubjectId[] = [
-  "computerScience",
-  "engineering",
-  "business",
-  "liberalArts",
-];
+// Bots only chase the original (core) subjects: every winning job needs them
+// and education is their average. Specialist subjects are for human players.
+const SUBJECT_IDS: readonly CoreSubjectId[] = CORE_SUBJECT_IDS;
 
 /** Stable 0–99 number for (week, seat): "does he forget this week?" must not
  *  flip-flop between decisions inside the same week. */
@@ -143,12 +142,12 @@ function studyTarget(
   if (!T.smartStudy) return open[Math.floor(rng() * open.length)];
 
   // Closest winning job (fewest missing subject points)
-  let bestDeficit: Partial<Record<SubjectId, number>> | null = null;
+  let bestDeficit: Partial<Record<CoreSubjectId, number>> | null = null;
   let bestTotal = Infinity;
   for (const title of p.goals.winningJobs) {
     const job = findJob(title);
     if (!job) continue;
-    const deficit: Partial<Record<SubjectId, number>> = {};
+    const deficit: Partial<Record<CoreSubjectId, number>> = {};
     let total = 0;
     for (const s of SUBJECT_IDS) {
       const need = job.requiredSubjects[s] ?? 0;

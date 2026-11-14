@@ -1,7 +1,7 @@
 "use client";
 
 import { findJob, jobs } from "@/lib/game/data/jobs";
-import { SUBJECTS } from "@/lib/game/data/services";
+import { SUBJECTS, subjectLevel, subjectName } from "@/lib/game/data/services";
 import { jobIsAvailable, jobsWithinReach } from "@/lib/game/engine";
 import type { SubjectId } from "@/lib/game/validators";
 import { useGame } from "./GameContext";
@@ -29,7 +29,7 @@ export function University() {
   return (
     <ScreenCard
       title="University"
-      subtitle="Raise your subject levels. Education is the average of all four."
+      subtitle="Raise your subject levels. Education is the average of the four core subjects; specialist subjects unlock extra careers."
     >
       <div className="grid gap-2 sm:grid-cols-2">
         {SUBJECTS.map((s) => {
@@ -50,16 +50,21 @@ export function University() {
                 style={selected ? GLOW_TEXT : undefined}
               >
                 {s.name}
+                {s.specialist && (
+                  <span className="ml-2 rounded-full border border-cyan-400/40 px-1.5 py-0.5 align-middle text-[9px] font-normal uppercase tracking-wider text-cyan-300/80">
+                    Specialist
+                  </span>
+                )}
               </p>
               <p className="text-xs text-muted-foreground">{s.description}</p>
               <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-cyan-950/60">
                 <div
                   className={`accent-gradient-bg h-full rounded-full ${GLOW_BAR}`}
-                  style={{ width: `${player.subjects[s.id]}%` }}
+                  style={{ width: `${subjectLevel(player.subjects, s.id)}%` }}
                 />
               </div>
               <p className="mt-1 text-[11px] text-cyan-300/70">
-                Level {player.subjects[s.id]}/100
+                Level {subjectLevel(player.subjects, s.id)}/100
               </p>
             </button>
           );
@@ -82,7 +87,7 @@ export function University() {
         </label>
         <ActionButton
           action={{ type: "studySubject", subject, hours }}
-          disabled={player.subjects[subject] >= 100}
+          disabled={subjectLevel(player.subjects, subject) >= 100}
           className="px-8"
         >
           Study
@@ -118,7 +123,7 @@ export function EmploymentOffice() {
           const ok = jobIsAvailable(player, job.title);
           const isCurrent = player.jobTitle === job.title;
           const reqs = Object.entries(job.requiredSubjects)
-            .map(([s, l]) => `${s} ${l}`)
+            .map(([s, l]) => `${subjectName(s)} ${l}`)
             .join(", ");
           return (
             <div

@@ -1,4 +1,10 @@
-import type { ApartmentTier, LeisureId, HomeActivity } from "../validators";
+import type {
+  ApartmentTier,
+  HomeActivity,
+  LeisureId,
+  SubjectId,
+  Subjects,
+} from "../validators";
 
 export interface Meal {
   readonly id: number;
@@ -192,23 +198,77 @@ export const SUBJECTS = [
     id: "computerScience",
     name: "Computer Science",
     description: "Learn programming and algorithms",
+    specialist: false,
   },
   {
     id: "engineering",
     name: "Engineering",
     description: "Develop technical problem-solving skills",
+    specialist: false,
   },
   {
     id: "business",
     name: "Business Administration",
     description: "Study management and finance",
+    specialist: false,
   },
   {
     id: "liberalArts",
     name: "Liberal Arts",
     description: "Broaden your horizons",
+    specialist: false,
   },
+  // ── Specialist subjects: unlock extra careers, but are NOT part of the
+  //    education average (so the original win condition is unchanged). ──
+  {
+    id: "medicine",
+    name: "Medicine",
+    description: "Anatomy, diagnosis and patient care",
+    specialist: true,
+  },
+  {
+    id: "law",
+    name: "Law",
+    description: "Contracts, courtrooms and legal argument",
+    specialist: true,
+  },
+  {
+    id: "science",
+    name: "Natural Sciences",
+    description: "Run experiments and master research methods",
+    specialist: true,
+  },
+  {
+    id: "design",
+    name: "Arts & Design",
+    description: "Visual, product and creative design skills",
+    specialist: true,
+  },
+] as const satisfies readonly {
+  id: SubjectId;
+  name: string;
+  description: string;
+  specialist: boolean;
+}[];
+
+/** The four original subjects; education is the average of exactly these. */
+export const CORE_SUBJECT_IDS = [
+  "computerScience",
+  "engineering",
+  "business",
+  "liberalArts",
 ] as const;
+export type CoreSubjectId = (typeof CORE_SUBJECT_IDS)[number];
+
+/** Level (0–100) of a subject; older saves may not have specialist ones. */
+export function subjectLevel(subjects: Subjects, id: SubjectId): number {
+  return subjects[id] ?? 0;
+}
+
+/** Friendly name for a subject id (falls back to the id). */
+export function subjectName(id: string): string {
+  return SUBJECTS.find((s) => s.id === id)?.name ?? id;
+}
 
 export const INITIAL_STOCKS = [
   { id: 1, name: "TechCorp", price: 25, change: 0 },

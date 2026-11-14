@@ -12,6 +12,11 @@ export const vSubjectId = v.union(
   v.literal("computerScience"),
   v.literal("business"),
   v.literal("liberalArts"),
+  // Specialist subjects (unlock extra careers, don't count toward education)
+  v.literal("medicine"),
+  v.literal("law"),
+  v.literal("science"),
+  v.literal("design"),
 );
 
 export const vSubjects = v.object({
@@ -19,6 +24,12 @@ export const vSubjects = v.object({
   computerScience: v.number(),
   business: v.number(),
   liberalArts: v.number(),
+  // Optional so saved games created before these subjects existed still load.
+  // Always read them through `subjectLevel()` (treats a missing value as 0).
+  medicine: v.optional(v.number()),
+  law: v.optional(v.number()),
+  science: v.optional(v.number()),
+  design: v.optional(v.number()),
 });
 
 export const vLocationId = v.union(
