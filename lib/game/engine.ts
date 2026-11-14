@@ -254,9 +254,17 @@ const REQUIRED_LOCATION: Record<GameAction["type"], LocationId | null> = {
   buyShares: "bank",
   sellShares: "bank",
   startDating: "datingOffice",
-  goOnDate: "datingOffice",
-  breakUp: "datingOffice",
+  goOnDate: null, // datingOffice or apartment (checked in handler)
+  breakUp: null, // datingOffice or apartment (checked in handler)
 };
+
+/** Dates and break-ups can happen at the Dating Office or at your own apartment. */
+function canManageRelationship(p: PlayerState): boolean {
+  return (
+    p.location === "datingOffice" ||
+    (p.location === "apartment" && p.rental.hasApartment)
+  );
+}
 
 function applyAction(
   p: PlayerState,
@@ -685,6 +693,8 @@ function applyAction(
     }
 
     case "goOnDate": {
+      if (!canManageRelationship(p))
+        return fail("Go on dates from your apartment or the Dating Office.");
       const person = findDatingOption(action.personId);
       if (
         !p.relationship.isDating ||
@@ -713,6 +723,8 @@ function applyAction(
     }
 
     case "breakUp": {
+      if (!canManageRelationship(p))
+        return fail("Break up from your apartment or the Dating Office.");
       if (!p.relationship.isDating) return fail("You're not dating anyone.");
       const partner =
         p.relationship.partnerId !== null

@@ -11,6 +11,9 @@ import {
 } from "@/lib/game/data/services";
 import type { HomeActivity } from "@/lib/game/validators";
 import { RENT_INTERVAL_WEEKS } from "@/lib/game/engine";
+import { shopItems } from "@/lib/game/data/items";
+import { datingOptions } from "@/lib/game/data/dating";
+import { PlayerAvatar } from "../PlayerAvatar";
 import { useGame } from "./GameContext";
 import { ActionButton, ScreenCard } from "./ui";
 import ActivityModal, { type ActivityInfo } from "./ActivityModal";
@@ -134,6 +137,15 @@ export function Apartment() {
     );
   }
   const activities = Object.keys(homeActivities) as HomeActivity[];
+  const rel = player.relationship;
+  const partner =
+    rel.isDating && rel.partnerId !== null
+      ? datingOptions.find((d) => d.id === rel.partnerId)
+      : undefined;
+  // Everything bought except food (food is eaten, so it isn't on display).
+  const belongings = shopItems.filter(
+    (i) => !i.food && player.possessions.includes(i.name),
+  );
 
   const openActivity = (a: HomeActivity): void => {
     const kind = ACTIVITY_KIND[a];
@@ -197,6 +209,102 @@ export function Apartment() {
           </div>
         ))}
       </div>
+
+      {/* ── Partner ─────────────────────────────────────────────── */}
+      <h4 className="accent-gradient-text mb-2 mt-5 text-sm font-semibold">
+        Your partner
+      </h4>
+      {partner ? (
+        <div className="cy-card flex flex-col gap-3 p-4 sm:flex-row sm:items-center">
+          <div className="flex min-w-0 flex-1 items-center gap-3">
+            <div className="shrink-0 overflow-hidden rounded-full border-2 border-cyan-400/80 shadow-[0_0_16px_color-mix(in_oklab,var(--accent-400)_65%,transparent)]">
+              <PlayerAvatar src={partner.image} name={partner.name} size={64} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-base font-bold text-white">
+                {partner.name}
+              </p>
+              <p className="text-xs text-cyan-100/70">
+                {partner.personality} · {rel.dateCount} date(s) so far
+              </p>
+              <div className="mt-2 grid grid-cols-2 gap-3">
+                {(
+                  [
+                    ["Health", rel.health],
+                    ["Happiness", rel.happiness],
+                  ] as const
+                ).map(([label, value]) => (
+                  <div key={label}>
+                    <div className="mb-1 flex justify-between">
+                      <span className="cy-label">{label}</span>
+                      <span className="font-mono text-xs text-cyan-100">
+                        {value}/100
+                      </span>
+                    </div>
+                    <div className="cy-meter" style={{ height: 4 }}>
+                      <div
+                        className="cy-meter-fill"
+                        style={{
+                          width: `${Math.max(0, Math.min(100, value))}%`,
+                        }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <ActionButton
+              action={{ type: "goOnDate", personId: partner.id }}
+              disabled={player.cash < partner.datePrice}
+            >
+              Date (${partner.datePrice})
+            </ActionButton>
+            <ActionButton action={{ type: "breakUp" }} variant="destructive">
+              Break up
+            </ActionButton>
+          </div>
+        </div>
+      ) : (
+        <p className="text-sm text-cyan-300/80">
+          You&apos;re single. To start dating someone new, visit the Dating
+          Office.
+        </p>
+      )}
+
+      {/* ── Belongings ──────────────────────────────────────────── */}
+      <h4 className="accent-gradient-text mb-2 mt-5 text-sm font-semibold">
+        Your belongings
+      </h4>
+      {belongings.length ? (
+        <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6">
+          {belongings.map((item) => (
+            <div
+              key={item.name}
+              className="accent-card flex flex-col items-center rounded-xl p-2 text-center"
+              title={item.name}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={item.image}
+                alt={item.name}
+                width={64}
+                height={64}
+                loading="lazy"
+                className="h-16 w-16 rounded-lg object-cover"
+              />
+              <span className="mt-1 text-[11px] font-medium text-white">
+                {item.name}
+              </span>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="text-sm text-cyan-300/80">
+          Nothing yet. Buy items at the Shopping Mall to fill your home.
+        </p>
+      )}
 
       <ActivityModal info={activity} onClose={() => setActivity(null)} />
     </ScreenCard>
