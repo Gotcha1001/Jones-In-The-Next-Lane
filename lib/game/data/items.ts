@@ -119,6 +119,12 @@ export const shopItems: readonly ShopItem[] = [
   },
 ];
 
+/** What the pawn shop pays for an item: three quarters of the shop price. */
+export const PAWN_RATE = 0.75;
+export function pawnValue(item: ShopItem): number {
+  return Math.round(item.price * PAWN_RATE * 100) / 100;
+}
+
 export function findItem(name: string): ShopItem | undefined {
   return shopItems.find((i) => i.name === name);
 }
