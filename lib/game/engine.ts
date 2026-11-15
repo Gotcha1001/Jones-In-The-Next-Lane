@@ -29,6 +29,8 @@ import {
   meals,
   subjectLevel,
   subjectName,
+  subjectTuition,
+  isEnrolled,
   tierFromRent,
   tierOrder,
   upgradeFee,
@@ -137,6 +139,7 @@ export function createPlayer(seat: number, input: NewPlayerInput): PlayerState {
     energy: 100,
     ateThisWeek: false,
     jobTitle: null,
+    enrolled: [],
     possessions: [],
     location: "apartment",
     week: 1,
@@ -255,6 +258,7 @@ const REQUIRED_LOCATION: Record<GameAction["type"], LocationId | null> = {
   closePlace: null,
   sleep: "apartment",
   homeActivity: "apartment",
+  enrollSubject: null, // university or apartment (checked in handler)
   studySubject: null, // university or apartment (checked in handler)
   work: "workplace",
   workRest: "workplace",
@@ -357,11 +361,40 @@ function applyAction(
       );
     }
 
+    case "enrollSubject": {
+      const atUni = p.location === "university";
+      const atHome = p.location === "apartment" && p.rental.hasApartment;
+      if (!atUni && !atHome)
+        return fail(
+          "Register at the University, or at home in your apartment.",
+        );
+      const name = subjectName(action.subject);
+      if (isEnrolled(p, action.subject))
+        return fail(`You're already registered for ${name}.`);
+      const fee = subjectTuition(action.subject);
+      if (p.cash < fee)
+        return fail(
+          `${name} tuition is $${fee} and you only have $${Math.floor(p.cash)}.`,
+        );
+      return done(
+        {
+          ...p,
+          cash: p.cash - fee,
+          enrolled: [...(p.enrolled ?? []), action.subject],
+        },
+        `You paid $${fee} tuition and registered for ${name}.`,
+      );
+    }
+
     case "studySubject": {
       const atUni = p.location === "university";
       const atHome = p.location === "apartment" && p.rental.hasApartment;
       if (!atUni && !atHome)
         return fail("Study at the University, or at home in your apartment.");
+      if (!isEnrolled(p, action.subject))
+        return fail(
+          `Register and pay tuition ($${subjectTuition(action.subject)}) for ${subjectName(action.subject)} before studying it.`,
+        );
       const hours = atHome ? 1 : Math.floor(action.hours);
       if (hours < 1 || hours > 10) return fail("Study between 1 and 10 hours.");
       const current = subjectLevel(p.subjects, action.subject);

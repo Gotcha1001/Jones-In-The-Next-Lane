@@ -4,8 +4,10 @@ import { useState } from "react";
 import {
   apartmentTiers,
   homeActivities,
+  isEnrolled,
   SUBJECTS,
   subjectLevel,
+  subjectTuition,
   tierFromRent,
   tierOrder,
   upgradeFee,
@@ -202,13 +204,23 @@ export function Apartment() {
                 Level {subjectLevel(player.subjects, s.id)}/100
               </p>
             </div>
-            <ActionButton
-              action={{ type: "studySubject", subject: s.id, hours: 1 }}
-              variant="outline"
-              disabled={subjectLevel(player.subjects, s.id) >= 100}
-            >
-              Study
-            </ActionButton>
+            {isEnrolled(player, s.id) ? (
+              <ActionButton
+                action={{ type: "studySubject", subject: s.id, hours: 1 }}
+                variant="outline"
+                disabled={subjectLevel(player.subjects, s.id) >= 100}
+              >
+                Study
+              </ActionButton>
+            ) : (
+              <ActionButton
+                action={{ type: "enrollSubject", subject: s.id }}
+                disabled={player.cash < subjectTuition(s.id)}
+                title="Pay tuition once to unlock this subject"
+              >
+                Register ${subjectTuition(s.id).toLocaleString()}
+              </ActionButton>
+            )}
           </div>
         ))}
       </div>

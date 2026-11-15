@@ -117,6 +117,8 @@ export const vPlayer = v.object({
   /** Has the player eaten a meal this week? (Missing in older saves.) */
   ateThisWeek: v.optional(v.boolean()),
   jobTitle: v.union(v.string(), v.null()),
+  /** Subjects the player has paid tuition for. (Missing in older saves.) */
+  enrolled: v.optional(v.array(v.string())),
   possessions: v.array(v.string()),
   location: vLocationId,
   week: v.number(),
@@ -218,6 +220,7 @@ export const vGameAction = v.union(
   v.object({ type: v.literal("closePlace") }),
   v.object({ type: v.literal("sleep") }),
   v.object({ type: v.literal("homeActivity"), activity: vHomeActivity }),
+  v.object({ type: v.literal("enrollSubject"), subject: vSubjectId }),
   v.object({
     type: v.literal("studySubject"),
     subject: vSubjectId,
