@@ -230,6 +230,7 @@ export const vGameAction = v.union(
   v.object({ type: v.literal("workRest") }),
   v.object({ type: v.literal("applyJob"), jobTitle: v.string() }),
   v.object({ type: v.literal("buyItem"), itemName: v.string() }),
+  v.object({ type: v.literal("sellItem"), itemName: v.string() }),
   v.object({ type: v.literal("buyMeal"), mealId: v.number() }),
   v.object({ type: v.literal("healing"), serviceId: v.number() }),
   v.object({ type: v.literal("leisure"), activity: vLeisureId }),

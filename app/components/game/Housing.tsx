@@ -14,7 +14,7 @@ import {
 } from "@/lib/game/data/services";
 import type { HomeActivity } from "@/lib/game/validators";
 import { RENT_INTERVAL_WEEKS } from "@/lib/game/engine";
-import { shopItems } from "@/lib/game/data/items";
+import { pawnValue, shopItems } from "@/lib/game/data/items";
 import { datingOptions } from "@/lib/game/data/dating";
 import { PlayerAvatar } from "../PlayerAvatar";
 import { useGame } from "./GameContext";
@@ -128,6 +128,7 @@ export function Apartment() {
   const [activity, setActivity] = useState<ActivityInfo | null>(null);
   // Pure, monotonic session id (replaces Date.now(), which React forbids in render).
   const [sessionCount, setSessionCount] = useState(0);
+  const [pawning, setPawning] = useState<string | null>(null);
 
   if (!player.rental.hasApartment) {
     return (
@@ -289,31 +290,70 @@ export function Apartment() {
       )}
 
       {/* ── Belongings ──────────────────────────────────────────── */}
-      <h4 className="accent-gradient-text mb-2 mt-5 text-sm font-semibold">
+      <h4 className="accent-gradient-text mb-1 mt-5 text-sm font-semibold">
         Your belongings
       </h4>
+      <p className="mb-2 text-xs text-cyan-300/70">
+        Tap an item to pawn it. The pawn broker pays 75% of what you paid.
+      </p>
       {belongings.length ? (
         <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6">
-          {belongings.map((item) => (
-            <div
-              key={item.name}
-              className="accent-card flex flex-col items-center rounded-xl p-2 text-center"
-              title={item.name}
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={item.image}
-                alt={item.name}
-                width={64}
-                height={64}
-                loading="lazy"
-                className="h-16 w-16 rounded-lg object-cover"
-              />
-              <span className="mt-1 text-[11px] font-medium text-white">
-                {item.name}
-              </span>
-            </div>
-          ))}
+          {belongings.map((item) => {
+            const selected = pawning === item.name;
+            return (
+              <div
+                key={item.name}
+                className={`accent-card flex flex-col items-center rounded-xl p-2 text-center transition ${
+                  selected ? "ring-2 ring-amber-300/80" : ""
+                }`}
+                title={item.name}
+              >
+                <button
+                  type="button"
+                  onClick={() => setPawning(selected ? null : item.name)}
+                  aria-pressed={selected}
+                  aria-label={`Pawn ${item.name}`}
+                  className="flex cursor-pointer flex-col items-center"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={item.image}
+                    alt={item.name}
+                    width={64}
+                    height={64}
+                    loading="lazy"
+                    className="h-16 w-16 rounded-lg object-cover"
+                  />
+                  <span className="mt-1 text-[11px] font-medium text-white">
+                    {item.name}
+                  </span>
+                  <span className="text-[10px] text-amber-300/90">
+                    Pawn ${pawnValue(item)}
+                  </span>
+                </button>
+                {selected && (
+                  <div className="mt-2 flex w-full flex-col gap-1">
+                    {/* No click wrapper here: unmounting this button on click
+                        would cancel the action. The tile vanishes on success. */}
+                    <ActionButton
+                      action={{ type: "sellItem", itemName: item.name }}
+                      className="w-full"
+                      title={`Sell for $${pawnValue(item)} (you paid $${item.price})`}
+                    >
+                      Pawn for ${pawnValue(item)}
+                    </ActionButton>
+                    <button
+                      type="button"
+                      onClick={() => setPawning(null)}
+                      className="cursor-pointer text-[10px] text-muted-foreground hover:text-white"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       ) : (
         <p className="text-sm text-cyan-300/80">

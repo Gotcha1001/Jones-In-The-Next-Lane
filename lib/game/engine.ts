@@ -12,7 +12,7 @@
  * time and randomness are injected so the engine is deterministic & testable.
  */
 import { findJob, jobs } from "./data/jobs";
-import { findItem } from "./data/items";
+import { findItem, pawnValue } from "./data/items";
 import { findDatingOption } from "./data/dating";
 import { FREE_TRAVEL_CHANCE, locations, TRAVEL_TIME } from "./data/locations";
 import { pickRandomEvent } from "./data/randomEvents";
@@ -264,6 +264,7 @@ const REQUIRED_LOCATION: Record<GameAction["type"], LocationId | null> = {
   workRest: "workplace",
   applyJob: "employmentOffice",
   buyItem: "mall",
+  sellItem: "apartment",
   buyMeal: "fastFood",
   healing: "healingCentre",
   leisure: "leisureCenter",
@@ -500,6 +501,27 @@ function applyAction(
             : p.happiness,
         },
         `You bought ${item.name} for $${item.price}!`,
+      );
+    }
+
+    case "sellItem": {
+      const item = findItem(action.itemName);
+      if (!item || item.food) return fail("You can't pawn that.");
+      if (!p.possessions.includes(item.name))
+        return fail(`You don't own ${item.name}.`);
+      const offer = pawnValue(item);
+      return done(
+        {
+          ...p,
+          cash: round2(p.cash + offer),
+          possessions: p.possessions.filter((n) => n !== item.name),
+          // Hand back the happiness it gave you, so buy/pawn can't be farmed.
+          happiness: item.happiness
+            ? Math.max(p.happiness - item.happiness, 0)
+            : p.happiness,
+        },
+        `You pawned ${item.name} for $${offer} (you paid $${item.price}).` +
+          (item.happiness ? ` -${item.happiness} happiness.` : ""),
       );
     }
 
