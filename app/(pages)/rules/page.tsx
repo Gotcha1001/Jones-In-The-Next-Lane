@@ -24,6 +24,7 @@ import {
   apartmentTiers,
   SUBJECTS,
   subjectName,
+  subjectTuition,
 } from "@/lib/game/data/services";
 import {
   Badge,
@@ -250,6 +251,16 @@ export default function RulesPage() {
             apartment. Each subject goes from 0 to 100, and a job unlocks the
             moment every subject it lists reaches the level shown. Pick a
             subject, then climb its ladder.
+          </p>
+          <p>
+            <strong>Pay before you study.</strong> You register for a subject
+            once by paying its tuition, and only then can you study it. The
+            subject that leads to the best-paid job costs the most:{" "}
+            {[...SUBJECTS]
+              .sort((x, y) => subjectTuition(y.id) - subjectTuition(x.id))
+              .map((x) => `${x.name} ${money(subjectTuition(x.id))}`)
+              .join(", ")}
+            .
           </p>
         </Body>
         <TileGrid cols={2}>

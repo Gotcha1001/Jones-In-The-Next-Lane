@@ -1,3 +1,4 @@
+import { jobs } from "./jobs";
 import type {
   ApartmentTier,
   HomeActivity,
@@ -263,6 +264,30 @@ export type CoreSubjectId = (typeof CORE_SUBJECT_IDS)[number];
 /** Level (0–100) of a subject; older saves may not have specialist ones. */
 export function subjectLevel(subjects: Subjects, id: SubjectId): number {
   return subjects[id] ?? 0;
+}
+
+/**
+ * One-off tuition to register for a subject. It scales with the best salary
+ * of any job that subject unlocks, so the subjects leading to the highest
+ * paying careers cost the most. Derived from the job data, so it never drifts.
+ */
+const TUITION_RATE = 0.5;
+export function subjectTuition(id: string): number {
+  const top = jobs
+    .filter((j) => id in j.requiredSubjects)
+    .reduce((max, j) => Math.max(max, j.salary), 0);
+  return Math.round((top * TUITION_RATE) / 10) * 10;
+}
+
+/**
+ * Has this player registered (paid tuition) for the subject? Players who
+ * already have points in it (older saves) count as registered.
+ */
+export function isEnrolled(
+  p: { subjects: Subjects; enrolled?: readonly string[] },
+  id: SubjectId,
+): boolean {
+  return (p.enrolled ?? []).includes(id) || subjectLevel(p.subjects, id) > 0;
 }
 
 /** Friendly name for a subject id (falls back to the id). */

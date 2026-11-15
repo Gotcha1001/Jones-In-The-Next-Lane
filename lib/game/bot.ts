@@ -23,6 +23,8 @@ import {
   meals,
   tierFromRent,
   upgradeFee,
+  isEnrolled,
+  subjectTuition,
   CORE_SUBJECT_IDS,
   type CoreSubjectId,
 } from "./data/services";
@@ -136,7 +138,10 @@ function studyTarget(
   T: Tuning,
   rng: () => number,
 ): SubjectId | null {
-  const open = SUBJECT_IDS.filter((s) => p.subjects[s] < 100);
+  const open = SUBJECT_IDS.filter(
+    (s) =>
+      p.subjects[s] < 100 && (isEnrolled(p, s) || p.cash >= subjectTuition(s)),
+  );
   if (open.length === 0) return null;
 
   if (!T.smartStudy) return open[Math.floor(rng() * open.length)];
@@ -167,9 +172,10 @@ function studyTarget(
     }
   }
   if (bestDeficit) {
-    return SUBJECT_IDS.filter((s) => (bestDeficit?.[s] ?? 0) > 0).sort(
-      (a, b) => (bestDeficit?.[b] ?? 0) - (bestDeficit?.[a] ?? 0),
-    )[0];
+    const wanted = open
+      .filter((s) => (bestDeficit?.[s] ?? 0) > 0)
+      .sort((a, b) => (bestDeficit?.[b] ?? 0) - (bestDeficit?.[a] ?? 0))[0];
+    if (wanted) return wanted;
   }
 
   // Otherwise lift the education average toward the goal
@@ -291,6 +297,13 @@ export function chooseBotPlan(
   // 8. Study early in the week
   if (t > T.studyUntil) {
     const subject = studyTarget(p, T, rng);
+    if (subject && !isEnrolled(p, subject)) {
+      // Tuition first: register and pay before the first lesson.
+      return {
+        action: { type: "enrollSubject", subject },
+        at: "university",
+      };
+    }
     if (subject) {
       const hours = Math.min(T.studyHours, t);
       return {

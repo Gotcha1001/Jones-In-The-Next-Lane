@@ -1,7 +1,13 @@
 "use client";
 
 import { findJob, jobs } from "@/lib/game/data/jobs";
-import { SUBJECTS, subjectLevel, subjectName } from "@/lib/game/data/services";
+import {
+  isEnrolled,
+  SUBJECTS,
+  subjectLevel,
+  subjectName,
+  subjectTuition,
+} from "@/lib/game/data/services";
 import { jobIsAvailable, jobsWithinReach } from "@/lib/game/engine";
 import type { SubjectId } from "@/lib/game/validators";
 import { useGame } from "./GameContext";
@@ -29,7 +35,7 @@ export function University() {
   return (
     <ScreenCard
       title="University"
-      subtitle="Raise your subject levels. Education is the average of the four core subjects; specialist subjects unlock extra careers."
+      subtitle="Register and pay tuition for a subject first, then study it. Subjects that lead to better-paid jobs cost more. Education is the average of the four core subjects; specialist subjects unlock extra careers."
     >
       <div className="grid gap-2 sm:grid-cols-2">
         {SUBJECTS.map((s) => {
@@ -63,8 +69,23 @@ export function University() {
                   style={{ width: `${subjectLevel(player.subjects, s.id)}%` }}
                 />
               </div>
-              <p className="mt-1 text-[11px] text-cyan-300/70">
-                Level {subjectLevel(player.subjects, s.id)}/100
+              <p className="mt-1 flex items-center justify-between text-[11px] text-cyan-300/70">
+                <span>Level {subjectLevel(player.subjects, s.id)}/100</span>
+                {isEnrolled(player, s.id) ? (
+                  <span className="font-semibold text-emerald-300">
+                    ✓ Registered
+                  </span>
+                ) : (
+                  <span
+                    className={`font-mono font-semibold ${
+                      player.cash >= subjectTuition(s.id)
+                        ? "text-amber-300"
+                        : "text-rose-300"
+                    }`}
+                  >
+                    Tuition ${subjectTuition(s.id).toLocaleString()}
+                  </span>
+                )}
               </p>
             </button>
           );
@@ -85,16 +106,36 @@ export function University() {
             ))}
           </select>
         </label>
-        <ActionButton
-          action={{ type: "studySubject", subject, hours }}
-          disabled={subjectLevel(player.subjects, subject) >= 100}
-          className="px-8"
-        >
-          Study
-        </ActionButton>
-        <span className="text-xs text-muted-foreground">
-          Costs {hours} time unit(s).
-        </span>
+        {isEnrolled(player, subject) ? (
+          <>
+            <ActionButton
+              action={{ type: "studySubject", subject, hours }}
+              disabled={subjectLevel(player.subjects, subject) >= 100}
+              className="px-8"
+            >
+              Study
+            </ActionButton>
+            <span className="text-xs text-muted-foreground">
+              Costs {hours} time unit(s).
+            </span>
+          </>
+        ) : (
+          <>
+            <ActionButton
+              action={{ type: "enrollSubject", subject }}
+              disabled={player.cash < subjectTuition(subject)}
+              className="px-8"
+            >
+              Register &amp; pay ${subjectTuition(subject).toLocaleString()}
+            </ActionButton>
+            <span className="text-xs text-muted-foreground">
+              {player.cash < subjectTuition(subject)
+                ? `You need $${(subjectTuition(subject) - Math.floor(player.cash)).toLocaleString()} more. `
+                : ""}
+              Pay tuition once to unlock {subjectName(subject)}.
+            </span>
+          </>
+        )}
       </div>
     </ScreenCard>
   );
