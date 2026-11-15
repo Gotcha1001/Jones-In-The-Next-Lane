@@ -73,6 +73,8 @@ export interface MyGameSummary {
   playerNames: string[];
   round: number;
   updatedAt: number;
+  /** True when the signed-in user owns (hosts) this game and may delete it. */
+  isOwner: boolean;
 }
 
 /** Everything the signed-in user is currently part of (sidebar "My games"). */
@@ -116,6 +118,7 @@ export const listMyGames = query({
         playerNames: g.seats.map((s) => s.name),
         round: g.core.round,
         updatedAt: g.updatedAt,
+        isOwner: g.ownerId === me._id,
       }));
   },
 });
@@ -408,8 +411,24 @@ export const deleteGame = mutation({
     if (!game) return;
     if (game.ownerId !== me._id)
       throw new Error("Only the owner can delete a game.");
-    if (game.roomId)
-      throw new Error("Online games are removed by resetting the room.");
+
+    // Online game: the host deleting it closes the whole room for everyone.
+    if (game.roomId) {
+      const roomId = game.roomId;
+      const members = await ctx.db
+        .query("roomMembers")
+        .withIndex("by_room", (q) => q.eq("roomId", roomId))
+        .collect();
+      for (const m of members) await ctx.db.delete(m._id);
+      const messages = await ctx.db
+        .query("messages")
+        .withIndex("by_room", (q) => q.eq("roomId", roomId))
+        .collect();
+      for (const msg of messages) await ctx.db.delete(msg._id);
+      await ctx.db.delete(gameId);
+      await ctx.db.delete(roomId);
+      return;
+    }
     await ctx.db.delete(gameId);
   },
 });
