@@ -111,13 +111,18 @@ export function AppSidebar() {
     gameId: Id<"games">,
     label: string,
     href: string,
+    online: boolean,
   ): Promise<void> => {
-    if (!window.confirm(`Delete "${label}"? This can't be undone.`)) return;
+    const warning = online
+      ? `Delete "${label}"? This closes the room and ends the game for ALL players. This can't be undone.`
+      : `Delete "${label}"? This can't be undone.`;
+    if (!window.confirm(warning)) return;
     try {
       await deleteGame({ gameId });
       toast.success("Game deleted");
       // If that's the game on screen, leave it.
-      if (pathname === href) router.push("/");
+      if (pathname === href || (online && pathname.startsWith("/room/")))
+        router.push("/");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Couldn't delete that game");
     }
@@ -206,8 +211,8 @@ export function AppSidebar() {
                     </span>
                   </Link>
                 </SidebarMenuButton>
-                {/* Online games are removed by resetting the room, not here. */}
-                {g.mode === "local" && (
+                {/* Local games: always. Online games: only the host (closes the room). */}
+                {(g.mode === "local" || g.isOwner) && (
                   <SidebarMenuAction
                     aria-label={`Delete ${g.playerNames.join(", ")} · R${g.round}`}
                     onClick={() =>
@@ -215,6 +220,7 @@ export function AppSidebar() {
                         g._id,
                         `${g.playerNames.join(", ")} · R${g.round}`,
                         gameHref(g),
+                        g.mode === "online",
                       )
                     }
                     showOnHover
