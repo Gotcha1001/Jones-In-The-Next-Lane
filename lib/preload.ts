@@ -1,5 +1,6 @@
 // lib/preload.ts
 // One place that lists what to warm up when the app opens.
+import { shopItems } from "@/lib/game/data/items";
 
 /** Must be ready before the app is shown (small, above-the-fold). */
 export const CRITICAL_IMAGES: string[] = [
@@ -14,22 +15,27 @@ export const CRITICAL_IMAGES: string[] = [
 ];
 
 /** Loaded quietly AFTER the app is visible, so they're instant later. */
-export const BACKGROUND_IMAGES: string[] = [
-  "/mall.jpg",
-  "/fastfood.jpg",
-  "/datingoffice.jpg",
-  "/meditate.jpg",
-  "/home.jpg",
-  "/leisure.jpg",
-  "/boss.jpg",
-  "/professor.jpg",
-  "/gaming.jpg",
-  "/tv.jpg",
-  "/home2.jpg",
-  "/home3.jpg",
-  "/home4.jpg",
-  "/grass.jpg",
-];
+export const BACKGROUND_IMAGES: string[] = Array.from(
+  new Set([
+    "/mall.jpg",
+    "/fastfood.jpg",
+    "/datingoffice.jpg",
+    "/meditate.jpg",
+    "/home.jpg",
+    "/leisure.jpg",
+    "/boss.jpg",
+    "/professor.jpg",
+    "/gaming.jpg",
+    "/tv.jpg",
+    "/home2.jpg",
+    "/home3.jpg",
+    "/home4.jpg",
+    "/grass.jpg",
+    // Shop items (/items/*.jpg): read from the game data so new items are
+    // preloaded automatically.
+    ...shopItems.map((item) => item.image),
+  ]),
+);
 
 /** Videos: hero ones first (landing page), the rest when idle. */
 export const HERO_VIDEOS: string[] = [
