@@ -16,7 +16,9 @@ export interface WeekendInfo {
   /** Whose turn is next; null in a one-player game. */
   nextPlayerName: string | null;
   /** Present when the player forgot to eat this week. */
-  doctor?: { cost: number; timeLost: number };
+  doctor?: { cost: number; timeLost: number; healthLost?: number };
+  /** Health change caused by the random event (negative = illness/injury). */
+  healthChange?: number;
   title: string;
   description: string;
 }
@@ -225,6 +227,19 @@ export default function WeekendModal({
                       <p className="mt-1 text-sm text-[color:var(--wk-muted)]">
                         {info.description}
                       </p>
+                      {info.healthChange !== undefined &&
+                        info.healthChange !== 0 && (
+                          <p
+                            className={`mt-2 font-mono text-xs font-bold uppercase tracking-widest ${
+                              info.healthChange < 0
+                                ? "text-red-400"
+                                : "text-emerald-400"
+                            }`}
+                          >
+                            ❤ Health {info.healthChange > 0 ? "+" : ""}
+                            {info.healthChange}
+                          </p>
+                        )}
                     </div>
 
                     {/* Forgot to eat: doctor's bill */}
@@ -248,6 +263,16 @@ export default function WeekendModal({
                             −{info.doctor.timeLost}⏱
                           </span>{" "}
                           off {info.isBot ? "the" : "your"} new week.
+                          {info.doctor.healthLost ? (
+                            <>
+                              {" "}
+                              Your health also crashed by{" "}
+                              <span className="font-bold text-red-400">
+                                −{info.doctor.healthLost} ❤
+                              </span>
+                              .
+                            </>
+                          ) : null}
                         </p>
                       </div>
                     )}

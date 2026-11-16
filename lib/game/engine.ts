@@ -57,6 +57,10 @@ export const SHIFT_TIME = 15;
 export const DOCTOR_BILL = 50;
 /** …and the visit eats this much of next week's time. */
 export const DOCTOR_TIME_LOST = 20;
+/** Health lost when you skip eating for a whole week (a big hit on purpose). */
+export const MISSED_MEAL_HEALTH_LOSS = 30;
+/** The Health goal: keep relationship.health at or above this. */
+export const HEALTH_GOAL = 80;
 /** Happiness gained from a good rest at the apartment. */
 export const SLEEP_HAPPINESS = 10;
 
@@ -184,7 +188,7 @@ export function evaluateGoals(p: PlayerState): GoalProgress {
   const hasLuxury =
     p.rental.hasApartment &&
     p.rental.rentAmount === apartmentTiers.luxury.rentAmount;
-  const hasGoodHealth = p.relationship.health >= 80;
+  const hasGoodHealth = p.relationship.health >= HEALTH_GOAL;
   const hasHappiness = p.happiness >= g.happiness;
   const avgEdu = averageEducation(p);
   const hasEdu = avgEdu >= g.education;
@@ -209,7 +213,7 @@ export function evaluateGoals(p: PlayerState): GoalProgress {
     },
     health: {
       current: p.relationship.health,
-      target: 80,
+      target: HEALTH_GOAL,
       achieved: hasGoodHealth,
     },
     happiness: {
@@ -845,6 +849,13 @@ function applyEventEffects(
       case "energy":
         next.energy = clamp(next.energy + change, 0, 100);
         break;
+      case "health":
+        // Health lives on `relationship` (it is also what the goal checks).
+        next.relationship = {
+          ...next.relationship,
+          health: clamp(next.relationship.health + change, 0, 100),
+        };
+        break;
       case "education":
         next.education = clamp(next.education + change, 0, 100);
         break;
@@ -1032,27 +1043,37 @@ function rollWeek(
 
   // Forgot to eat all week? The doctor sends a bill and takes some of the
   // new week's time. (`=== false` so old saves without the flag get a pass.)
-  let doctor: { cost: number; timeLost: number } | undefined;
+  // Skipping meals also tanks your health, dramatically.
+  let doctor:
+    | { cost: number; timeLost: number; healthLost: number }
+    | undefined;
   if (before.ateThisWeek === false) {
     const cost = Math.min(DOCTOR_BILL, p.cash);
+    const healthBefore = p.relationship.health;
+    const healthAfter = clamp(healthBefore - MISSED_MEAL_HEALTH_LOSS, 0, 100);
     p = {
       ...p,
       cash: round2(p.cash - cost),
       timeLeft: WEEK_LENGTH - DOCTOR_TIME_LOST,
+      relationship: { ...p.relationship, health: healthAfter },
     };
-    doctor = { cost, timeLost: DOCTOR_TIME_LOST };
-    summary += ` You forgot to eat! Doctor's bill: $${cost}, and ${DOCTOR_TIME_LOST} time units lost.`;
+    const healthLost = healthBefore - healthAfter;
+    doctor = { cost, timeLost: DOCTOR_TIME_LOST, healthLost };
+    summary += ` You forgot to eat! Doctor's bill: $${cost}, ${DOCTOR_TIME_LOST} time units lost and -${healthLost} health.`;
     next = pushLog(
       next,
       seat,
-      `${p.name} forgot to eat this week: doctor's bill $${cost}, -${DOCTOR_TIME_LOST} time.`,
+      `${p.name} forgot to eat this week: doctor's bill $${cost}, -${DOCTOR_TIME_LOST} time, -${healthLost} health.`,
       now,
     );
   }
 
   {
     const ev = pickRandomEvent(p, rng);
+    const healthBeforeEvent = p.relationship.health;
     p = applyEventEffects(p, ev.effects);
+    // Actual change after clamping to 0–100 (0 when the event didn't touch it).
+    const healthChange = p.relationship.health - healthBeforeEvent;
     next = {
       ...next,
       lastEvent: {
@@ -1062,10 +1083,20 @@ function rollWeek(
         description: ev.description,
         at: now,
         ...(doctor ? { doctor } : {}),
+        ...(healthChange !== 0 ? { healthChange } : {}),
       },
     };
-    summary += ` ${ev.title}: ${ev.description}`;
-    next = pushLog(next, seat, `${ev.title}: ${ev.description}`, now);
+    const healthNote =
+      healthChange !== 0
+        ? ` (${healthChange > 0 ? "+" : ""}${healthChange} health)`
+        : "";
+    summary += ` ${ev.title}: ${ev.description}${healthNote}`;
+    next = pushLog(
+      next,
+      seat,
+      `${ev.title}: ${ev.description}${healthNote}`,
+      now,
+    );
   }
 
   if (p.rental.hasApartment) {

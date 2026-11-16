@@ -12,6 +12,7 @@ export type EventStat =
   | "cash"
   | "happiness"
   | "energy"
+  | "health"
   | "education"
   | "experience";
 
@@ -26,8 +27,12 @@ export interface RandomEvent {
   readonly condition?: (player: PlayerState) => boolean;
 }
 
-// Collection of possible random events that can occur between weeks
-// Collection of possible random events that can occur between weeks
+// Collection of possible random events that can occur between weeks.
+//
+// HEALTH: `health` is the same 0–100 value the "Health" goal checks (it lives
+// on `player.relationship.health`). Illness, injury and burnout events knock it
+// down; healing services and dates build it back up. None of these events ever
+// stop the player from working — they only cost health (and sometimes cash).
 export const randomEvents: readonly RandomEvent[] = [
   {
     id: "found_money",
@@ -58,6 +63,7 @@ export const randomEvents: readonly RandomEvent[] = [
     effects: {
       energy: 10,
       happiness: 5,
+      health: 8,
     },
     probability: 7,
   },
@@ -148,6 +154,7 @@ export const randomEvents: readonly RandomEvent[] = [
     effects: {
       energy: -10,
       education: 3,
+      health: -4,
     },
     probability: 7,
   },
@@ -220,10 +227,12 @@ export const randomEvents: readonly RandomEvent[] = [
     id: "doctor_visit",
     category: "health",
     title: "Doctor Visit",
-    description: "You had to visit the doctor. The bill came to $70.",
+    description:
+      "You had to visit the doctor. The bill came to $70, but you're on the mend.",
     effects: {
       cash: -70,
       energy: -10,
+      health: 5,
     },
     probability: 8,
   },
@@ -267,6 +276,7 @@ export const randomEvents: readonly RandomEvent[] = [
     description: "You tossed and turned all night and feel drained.",
     effects: {
       energy: -20,
+      health: -8,
     },
     probability: 8,
   },
@@ -323,6 +333,7 @@ export const randomEvents: readonly RandomEvent[] = [
       cash: -40,
       energy: -5,
       happiness: 3,
+      health: 6,
     },
     probability: 7,
   },
@@ -341,9 +352,10 @@ export const randomEvents: readonly RandomEvent[] = [
     id: "caught_cold",
     category: "health",
     title: "Caught a Cold",
-    description: "You caught a cold over the weekend. You feel a bit tired.",
+    description: "You caught a cold over the weekend. You feel run down.",
     effects: {
       energy: -15,
+      health: -12,
     },
     probability: 10,
   },
@@ -398,6 +410,7 @@ export const randomEvents: readonly RandomEvent[] = [
     effects: {
       happiness: 15,
       energy: -25,
+      health: -10,
     },
     probability: 7,
   },
@@ -447,6 +460,137 @@ export const randomEvents: readonly RandomEvent[] = [
     },
     condition: (p) => p.jobTitle !== null,
     probability: 7,
+  },
+  // ── Illness, injury & burnout (health decay) ─────────────────────────────
+  {
+    id: "food_poisoning",
+    category: "health",
+    title: "Food Poisoning",
+    description:
+      "That questionable leftover curry fought back. You spent the weekend on the bathroom floor.",
+    effects: {
+      health: -25,
+      energy: -20,
+      happiness: -5,
+    },
+    probability: 6,
+  },
+  {
+    id: "flu_outbreak",
+    category: "health",
+    title: "The Flu Is Going Around",
+    description:
+      "Half the city is sick and you're now one of them. Fever, aches, the lot.",
+    effects: {
+      health: -20,
+      energy: -25,
+      happiness: -8,
+    },
+    probability: 6,
+  },
+  {
+    id: "stomach_bug",
+    category: "health",
+    title: "Stomach Bug",
+    description:
+      "Something you ate disagreed with you. A rough couple of days.",
+    effects: {
+      health: -15,
+      energy: -10,
+    },
+    probability: 7,
+  },
+  {
+    id: "twisted_ankle",
+    category: "health",
+    title: "Twisted Ankle",
+    description:
+      "You missed a step on the stairs. Ice, rest and a lot of swearing.",
+    effects: {
+      health: -12,
+      energy: -5,
+      cash: -20,
+    },
+    probability: 6,
+  },
+  {
+    id: "allergic_reaction",
+    category: "health",
+    title: "Allergic Reaction",
+    description:
+      "You had a scary allergic reaction and needed an emergency pharmacy run.",
+    effects: {
+      health: -18,
+      cash: -45,
+      happiness: -5,
+    },
+    probability: 4,
+  },
+  {
+    id: "pneumonia_scare",
+    category: "health",
+    title: "Pneumonia Scare",
+    description:
+      "A cough that wouldn't quit turned into a hospital visit. You're lucky it wasn't worse.",
+    effects: {
+      health: -30,
+      cash: -100,
+      energy: -25,
+      happiness: -10,
+    },
+    probability: 2,
+  },
+  {
+    id: "bad_back",
+    category: "health",
+    title: "Bad Back From Overwork",
+    description:
+      "Too many long days hunched over has wrecked your back. You can still work, but it hurts.",
+    effects: {
+      health: -15,
+      energy: -10,
+    },
+    condition: (p) => p.jobTitle !== null,
+    probability: 7,
+  },
+  {
+    id: "burnout",
+    category: "health",
+    title: "Burnout",
+    description:
+      "The grind finally caught up with you. You're exhausted, wired and miserable.",
+    effects: {
+      health: -22,
+      energy: -30,
+      happiness: -12,
+    },
+    condition: (p) => p.jobTitle !== null,
+    probability: 5,
+  },
+  {
+    id: "workplace_injury",
+    category: "health",
+    title: "Workplace Injury",
+    description:
+      "You got hurt on the job. First-aid and a prescription cost you, but you're still on the clock.",
+    effects: {
+      health: -18,
+      cash: -50,
+    },
+    condition: (p) => p.jobTitle !== null,
+    probability: 4,
+  },
+  {
+    id: "morning_jog",
+    category: "health",
+    title: "Morning Jog Habit",
+    description: "You started jogging before the sun comes up. You feel great.",
+    effects: {
+      health: 6,
+      energy: 5,
+      happiness: 3,
+    },
+    probability: 5,
   },
 ];
 

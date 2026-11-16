@@ -165,7 +165,16 @@ export const vLastEvent = v.union(
     description: v.string(),
     at: v.number(),
     /** Set when the player forgot to eat that week. */
-    doctor: v.optional(v.object({ cost: v.number(), timeLost: v.number() })),
+    doctor: v.optional(
+      v.object({
+        cost: v.number(),
+        timeLost: v.number(),
+        /** Health lost from skipping meals (optional: older saves lack it). */
+        healthLost: v.optional(v.number()),
+      }),
+    ),
+    /** Health change caused by the random event itself (negative = illness). */
+    healthChange: v.optional(v.number()),
   }),
 );
 

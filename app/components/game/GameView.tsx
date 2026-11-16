@@ -208,6 +208,7 @@ export function GameView({ gameId, roomId, isHost }: Props) {
                 null)
               : null,
           doctor: event.doctor,
+          healthChange: event.healthChange,
           title: event.title,
           description: event.description,
         });
