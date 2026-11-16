@@ -20,6 +20,8 @@ import { findJob, jobs } from "./data/jobs";
 import type { Job } from "./data/jobs";
 import {
   apartmentTiers,
+  healingServices,
+  HEALING_TIME,
   meals,
   tierFromRent,
   upgradeFee,
@@ -69,6 +71,8 @@ interface Tuning {
   bestJob: boolean;
   /** Studies what his target job needs instead of a random subject. */
   smartStudy: boolean;
+  /** Visits the Healing Centre when health falls below this (0 = never). */
+  healBelow: number;
 }
 
 const TUNING: Record<BotLevel, Tuning> = {
@@ -84,6 +88,7 @@ const TUNING: Record<BotLevel, Tuning> = {
     upgradeBuffer: null,
     bestJob: false,
     smartStudy: false,
+    healBelow: 0,
   },
   medium: {
     forgetEatPct: 10,
@@ -97,6 +102,7 @@ const TUNING: Record<BotLevel, Tuning> = {
     upgradeBuffer: 500,
     bestJob: true,
     smartStudy: true,
+    healBelow: 55,
   },
   hard: {
     forgetEatPct: 0,
@@ -110,6 +116,7 @@ const TUNING: Record<BotLevel, Tuning> = {
     upgradeBuffer: 150,
     bestJob: true,
     smartStudy: true,
+    healBelow: 80,
   },
 };
 
@@ -328,6 +335,26 @@ export function chooseBotPlan(
         action: { type: "deposit", amount },
         at: "bank",
         ui: { "bank-amount": amount },
+      };
+    }
+  }
+
+  // 9b. Health: illness and skipped meals drain it, so top it back up
+  //     (hard aims for the goal, medium only when it gets bad, easy never).
+  if (
+    T.healBelow > 0 &&
+    p.relationship.health < T.healBelow &&
+    t > HEALING_TIME
+  ) {
+    const affordable = healingServices.filter((s) => s.price <= p.cash);
+    if (affordable.length > 0) {
+      // Biggest health gain per dollar, but only what he can comfortably pay.
+      const best = [...affordable].sort(
+        (a, b) => b.health / b.price - a.health / a.price,
+      )[0];
+      return {
+        action: { type: "healing", serviceId: best.id },
+        at: "healingCentre",
       };
     }
   }

@@ -13,7 +13,9 @@ import {
   DEFAULT_GOALS,
   DOCTOR_BILL,
   DOCTOR_TIME_LOST,
+  HEALTH_GOAL,
   INTEREST_RATE,
+  MISSED_MEAL_HEALTH_LOSS,
   RENT_INTERVAL_WEEKS,
   SHIFT_TIME,
   STARTING_CASH,
@@ -431,7 +433,14 @@ export default function RulesPage() {
           <Bullet>
             Remember to eat every week. If you forget, you get a doctor&apos;s
             bill of up to <strong>{money(DOCTOR_BILL)}</strong> and lose{" "}
-            <strong>{DOCTOR_TIME_LOST} time units</strong> the following week.
+            <strong>{DOCTOR_TIME_LOST} time units</strong> the following week,
+            and your health drops by <strong>{MISSED_MEAL_HEALTH_LOSS}</strong>.
+          </Bullet>
+          <Bullet>
+            Your health must be <strong>{HEALTH_GOAL}+</strong> to win. Random
+            events (illness, injury, burnout) can lower it at the end of any
+            week. Healing services and dates raise it. Poor health never stops
+            you from working.
           </Bullet>
         </Bullets>
       </Section>
