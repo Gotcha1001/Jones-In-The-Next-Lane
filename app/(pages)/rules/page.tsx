@@ -13,13 +13,21 @@ import {
   DEFAULT_GOALS,
   DOCTOR_BILL,
   DOCTOR_TIME_LOST,
+  EXHAUSTED_BELOW,
+  EXHAUSTED_FACTOR,
   HEALTH_GOAL,
   INTEREST_RATE,
+  MISSED_MEAL_ENERGY_LOSS,
   MISSED_MEAL_HEALTH_LOSS,
   RENT_INTERVAL_WEEKS,
   SHIFT_TIME,
+  SLEEP_ENERGY,
   STARTING_CASH,
+  TIRED_BELOW,
+  TIRED_FACTOR,
   WEEK_LENGTH,
+  WEEKLY_ENERGY_RECOVERY,
+  WORK_ENERGY_COST,
 } from "@/lib/game/engine";
 import { findJob, jobs, type Job } from "@/lib/game/data/jobs";
 import {
@@ -424,8 +432,8 @@ export default function RulesPage() {
             pay.
           </Bullet>
           <Bullet>
-            You need an apartment to sleep (which restores happiness) and to
-            study at home.
+            You need an apartment to sleep (which restores happiness and{" "}
+            <strong>{SLEEP_ENERGY} energy</strong>) and to study at home.
           </Bullet>
           <Bullet>
             You can upgrade to a bigger apartment for a one-off fee.
@@ -434,13 +442,32 @@ export default function RulesPage() {
             Remember to eat every week. If you forget, you get a doctor&apos;s
             bill of up to <strong>{money(DOCTOR_BILL)}</strong> and lose{" "}
             <strong>{DOCTOR_TIME_LOST} time units</strong> the following week,
-            and your health drops by <strong>{MISSED_MEAL_HEALTH_LOSS}</strong>.
+            and your health drops by <strong>{MISSED_MEAL_HEALTH_LOSS}</strong>{" "}
+            and your energy by <strong>{MISSED_MEAL_ENERGY_LOSS}</strong>.
+          </Bullet>
+          <Bullet>
+            <strong>Meals are not all equal.</strong> Every meal counts as
+            eating for the week, but pricier food restores more energy and
+            happiness, and the first meal each week changes your health: junk
+            food costs a little, quality food adds a lot. Extra meals in the
+            same week only restore energy and happiness.
+          </Bullet>
+          <Bullet>
+            <strong>Energy</strong> starts at 100. Each shift burns{" "}
+            <strong>{WORK_ENERGY_COST}</strong> and studying burns more, while a
+            new week gives back <strong>{WEEKLY_ENERGY_RECOVERY}</strong>. Below{" "}
+            <strong>{TIRED_BELOW}</strong> you are tired (
+            <strong>{Math.round((1 - TIRED_FACTOR) * 100)}%</strong> less pay
+            and study gains); below <strong>{EXHAUSTED_BELOW}</strong> you are
+            exhausted (
+            <strong>{Math.round((1 - EXHAUSTED_FACTOR) * 100)}%</strong> less).
+            Eat well or rest at home to recover.
           </Bullet>
           <Bullet>
             Your health must be <strong>{HEALTH_GOAL}+</strong> to win. Random
             events (illness, injury, burnout) can lower it at the end of any
-            week. Healing services and dates raise it. Poor health never stops
-            you from working.
+            week. Healing services, dates and good meals raise it. Poor health
+            never stops you from working.
           </Bullet>
         </Bullets>
       </Section>

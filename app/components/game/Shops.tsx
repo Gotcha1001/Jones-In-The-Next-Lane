@@ -64,25 +64,42 @@ export function FastFood() {
   return (
     <ScreenCard
       title="Python Burgers"
-      subtitle="Each meal takes 10 time units."
+      subtitle="Each meal takes 10 time units. Better food restores more energy, and tired workers earn less."
     >
+      <p className="mb-2 text-sm text-cyan-100">
+        Energy:{" "}
+        <strong className="accent-gradient-text">
+          {Math.round(player.energy)}
+        </strong>
+        /100 · Health:{" "}
+        <strong className="accent-gradient-text">
+          {player.relationship.health}
+        </strong>
+        /100
+        {player.ateThisWeek === true
+          ? " · Already ate this week (extra meals won't change health)"
+          : " · Haven't eaten this week"}
+      </p>
       <div className="grid gap-2 sm:grid-cols-2">
-        {meals.map((m) => (
-          <div key={m.id} className={ROW}>
-            <div>
-              <p className={NAME}>{m.name}</p>
-              <p className={META}>
-                ${m.price} · +{m.happiness} 😊 · counts as eating for the week
-              </p>
+        {[...meals]
+          .sort((a, b) => a.price - b.price)
+          .map((m) => (
+            <div key={m.id} className={ROW}>
+              <div>
+                <p className={NAME}>{m.name}</p>
+                <p className={META}>
+                  ${m.price} · +{m.energy} ⚡ · +{m.happiness} 😊 ·{" "}
+                  {m.health > 0 ? `+${m.health}` : m.health} ❤️
+                </p>
+              </div>
+              <ActionButton
+                action={{ type: "buyMeal", mealId: m.id }}
+                disabled={player.cash < m.price}
+              >
+                Eat
+              </ActionButton>
             </div>
-            <ActionButton
-              action={{ type: "buyMeal", mealId: m.id }}
-              disabled={player.cash < m.price}
-            >
-              Eat
-            </ActionButton>
-          </div>
-        ))}
+          ))}
       </div>
     </ScreenCard>
   );

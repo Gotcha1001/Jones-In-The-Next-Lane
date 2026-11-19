@@ -64,6 +64,56 @@ export const HEALTH_GOAL = 80;
 /** Happiness gained from a good rest at the apartment. */
 export const SLEEP_HAPPINESS = 10;
 
+// ── Energy ──────────────────────────────────────────────────────────────────
+// Energy is what makes meal quality matter. Working and studying burn it,
+// food, sleep and a new week restore it, and when it runs low you earn less
+// and learn less.
+/** Energy burned by one shift of work (SHIFT_TIME units). */
+export const WORK_ENERGY_COST = 5;
+/** Energy burned per hour studying at the university. */
+export const STUDY_ENERGY_COST_PER_HOUR = 1;
+/** Energy burned by a study session at home. */
+export const HOME_STUDY_ENERGY_COST = 2;
+/** Energy restored by resting at the apartment. */
+export const SLEEP_ENERGY = 25;
+/** Energy recovered for free when a new week begins. */
+export const WEEKLY_ENERGY_RECOVERY = 15;
+/** Energy lost when you skip eating for the whole week. */
+export const MISSED_MEAL_ENERGY_LOSS = 20;
+/** Below this you are tired… */
+export const TIRED_BELOW = 60;
+/** …and below this you are exhausted. */
+export const EXHAUSTED_BELOW = 30;
+/** Pay and study multiplier while tired. */
+export const TIRED_FACTOR = 0.85;
+/** Pay and study multiplier while exhausted. */
+export const EXHAUSTED_FACTOR = 0.7;
+
+/** Multiplier applied to wages and study gains for a given energy level. */
+export function energyFactor(energy: number): number {
+  if (energy < EXHAUSTED_BELOW) return EXHAUSTED_FACTOR;
+  if (energy < TIRED_BELOW) return TIRED_FACTOR;
+  return 1;
+}
+
+/** Short label for the player's energy level (null when fully fit). */
+export function energyStatus(
+  energy: number,
+): { label: string; penaltyPct: number } | null {
+  const factor = energyFactor(energy);
+  if (factor === 1) return null;
+  const penaltyPct = Math.round((1 - factor) * 100);
+  return {
+    label: energy < EXHAUSTED_BELOW ? "Exhausted" : "Tired",
+    penaltyPct,
+  };
+}
+
+function tiredNote(energy: number): string {
+  const s = energyStatus(energy);
+  return s ? ` (${s.label.toLowerCase()}: -${s.penaltyPct}%)` : "";
+}
+
 export const DEFAULT_GOALS: Goals = {
   cash: 10000,
   education: 80,
@@ -344,10 +394,15 @@ function applyAction(
         return fail(
           "You need to rent an apartment first! Visit the Rental Office.",
         );
-      if (p.happiness >= 100) return fail("You're already as happy as can be!");
+      if (p.happiness >= 100 && p.energy >= 100)
+        return fail("You're already fully rested and as happy as can be!");
       return done(
-        { ...p, happiness: clamp(p.happiness + SLEEP_HAPPINESS, 0, 100) },
-        `You had a good rest: +${SLEEP_HAPPINESS} happiness.`,
+        {
+          ...p,
+          happiness: clamp(p.happiness + SLEEP_HAPPINESS, 0, 100),
+          energy: clamp(p.energy + SLEEP_ENERGY, 0, 100),
+        },
+        `You had a good rest: +${SLEEP_HAPPINESS} happiness, +${SLEEP_ENERGY} energy.`,
         30,
       );
     }
@@ -404,7 +459,13 @@ function applyAction(
       if (hours < 1 || hours > 10) return fail("Study between 1 and 10 hours.");
       const current = subjectLevel(p.subjects, action.subject);
       if (current >= 100) return fail("You've already mastered that subject!");
-      const gain = Math.floor(2 * hours * (1 + current / 100));
+      // Tired students learn less.
+      const gain = Math.floor(
+        2 * hours * (1 + current / 100) * energyFactor(p.energy),
+      );
+      const energyCost = atHome
+        ? HOME_STUDY_ENERGY_COST
+        : hours * STUDY_ENERGY_COST_PER_HOUR;
       const subjects = {
         ...p.subjects,
         [action.subject]: Math.min(current + gain, 100),
@@ -412,10 +473,11 @@ function applyAction(
       const next: PlayerState = {
         ...p,
         subjects,
+        energy: clamp(p.energy - energyCost, 0, 100),
       };
       return done(
         { ...next, education: averageEducation(next) },
-        `You studied ${subjectName(action.subject)} and gained ${gain} points!`,
+        `You studied ${subjectName(action.subject)} and gained ${gain} points${tiredNote(p.energy)}!`,
         atHome ? 15 : hours,
       );
     }
@@ -423,7 +485,8 @@ function applyAction(
     case "work": {
       const job = p.jobTitle ? findJob(p.jobTitle) : undefined;
       if (!job) return fail("You need to get a job first!");
-      let salary = job.salary;
+      // Tired workers earn less.
+      let salary = Math.round(job.salary * energyFactor(p.energy));
       let garnish = "";
       if (p.rental.hasApartment && p.rental.rentDue) {
         const cut = Math.floor(salary * 0.2);
@@ -435,8 +498,9 @@ function applyAction(
           ...p,
           cash: p.cash + salary,
           experience: Math.min(p.experience + 2, 100),
+          energy: clamp(p.energy - WORK_ENERGY_COST, 0, 100),
         },
-        `You worked as ${job.title} and earned $${salary}!${garnish}`,
+        `You worked as ${job.title} and earned $${salary}${tiredNote(p.energy)}!${garnish}`,
         15,
       );
     }
@@ -447,7 +511,7 @@ function applyAction(
       if (p.timeLeft <= 0) return fail("There's no time left this week.");
       // A "shift" is SHIFT_TIME units; the rest of the week pays pro rata.
       const shifts = p.timeLeft / SHIFT_TIME;
-      let salary = Math.round(job.salary * shifts);
+      let salary = Math.round(job.salary * shifts * energyFactor(p.energy));
       let garnish = "";
       if (p.rental.hasApartment && p.rental.rentDue) {
         const cut = Math.floor(salary * 0.2);
@@ -459,8 +523,13 @@ function applyAction(
           ...p,
           cash: p.cash + salary,
           experience: Math.min(p.experience + Math.round(shifts * 2), 100),
+          energy: clamp(
+            p.energy - Math.round(shifts * WORK_ENERGY_COST),
+            0,
+            100,
+          ),
         },
-        `You worked the rest of the week as ${job.title} and earned $${salary}!${garnish}`,
+        `You worked the rest of the week as ${job.title} and earned $${salary}${tiredNote(p.energy)}!${garnish}`,
         p.timeLeft,
       );
     }
@@ -534,14 +603,31 @@ function applyAction(
       if (!meal) return fail("That meal doesn't exist.");
       if (p.cash < meal.price)
         return fail("You don't have enough cash for that meal.");
+      // Only the first meal of the week changes your health (so you can't
+      // farm health with cheap seconds); every meal restores energy.
+      const firstMeal = p.ateThisWeek !== true;
+      const healthChange = firstMeal ? meal.health : 0;
+      const healthText =
+        healthChange !== 0
+          ? `, ${healthChange > 0 ? "+" : ""}${healthChange} health`
+          : "";
       return done(
         {
           ...p,
           cash: round2(p.cash - meal.price),
+          energy: clamp(p.energy + meal.energy, 0, 100),
           happiness: Math.min(p.happiness + meal.happiness, 100),
+          relationship: {
+            ...p.relationship,
+            health: clamp(p.relationship.health + healthChange, 0, 100),
+          },
           ateThisWeek: true,
         },
-        `You enjoyed a ${meal.name}: +${meal.happiness} happiness. You've eaten for the week!`,
+        `You enjoyed a ${meal.name}: +${meal.energy} energy, +${meal.happiness} happiness${healthText}.${
+          firstMeal
+            ? " You've eaten for the week!"
+            : " (Already ate this week: no health change.)"
+        }`,
         MEAL_TIME,
       );
     }
@@ -1034,6 +1120,8 @@ function rollWeek(
     // Every new week starts at home (the apartment / the place you rent).
     location: "apartment",
     ateThisWeek: false,
+    // A new week brings a little free recovery; food and sleep do the rest.
+    energy: clamp(before.energy + WEEKLY_ENERGY_RECOVERY, 0, 100),
     happiness: before.happiness > 50 ? before.happiness - 5 : before.happiness,
   };
   let summary = `Week ${p.week} begins for ${p.name}.`;
@@ -1051,19 +1139,23 @@ function rollWeek(
     const cost = Math.min(DOCTOR_BILL, p.cash);
     const healthBefore = p.relationship.health;
     const healthAfter = clamp(healthBefore - MISSED_MEAL_HEALTH_LOSS, 0, 100);
+    const energyBefore = p.energy;
+    const energyAfter = clamp(energyBefore - MISSED_MEAL_ENERGY_LOSS, 0, 100);
     p = {
       ...p,
       cash: round2(p.cash - cost),
       timeLeft: WEEK_LENGTH - DOCTOR_TIME_LOST,
+      energy: energyAfter,
       relationship: { ...p.relationship, health: healthAfter },
     };
     const healthLost = healthBefore - healthAfter;
+    const energyLost = energyBefore - energyAfter;
     doctor = { cost, timeLost: DOCTOR_TIME_LOST, healthLost };
-    summary += ` You forgot to eat! Doctor's bill: $${cost}, ${DOCTOR_TIME_LOST} time units lost and -${healthLost} health.`;
+    summary += ` You forgot to eat! Doctor's bill: $${cost}, ${DOCTOR_TIME_LOST} time units lost, -${healthLost} health and -${energyLost} energy.`;
     next = pushLog(
       next,
       seat,
-      `${p.name} forgot to eat this week: doctor's bill $${cost}, -${DOCTOR_TIME_LOST} time, -${healthLost} health.`,
+      `${p.name} forgot to eat this week: doctor's bill $${cost}, -${DOCTOR_TIME_LOST} time, -${healthLost} health, -${energyLost} energy.`,
       now,
     );
   }

@@ -22,6 +22,7 @@ import {
   apartmentTiers,
   healingServices,
   HEALING_TIME,
+  mealValue,
   meals,
   tierFromRent,
   upgradeFee,
@@ -238,9 +239,10 @@ export function chooseBotPlan(
     if (eatNow && affordable.length > 0) {
       const budget = Math.max(6, p.cash * 0.03);
       const pool = affordable.filter((m) => m.price <= budget);
+      // Best all-round meal (energy + happiness + health) he can comfortably pay.
       const meal =
         pool.length > 0
-          ? [...pool].sort((a, b) => b.happiness - a.happiness)[0]
+          ? [...pool].sort((a, b) => mealValue(b) - mealValue(a))[0]
           : [...affordable].sort((a, b) => a.price - b.price)[0];
       return { action: { type: "buyMeal", mealId: meal.id }, at: "fastFood" };
     }
@@ -357,6 +359,12 @@ export function chooseBotPlan(
         at: "healingCentre",
       };
     }
+  }
+
+  // 9c. Exhausted? Tired workers earn less, so rest at home first
+  //     (easy never bothers).
+  if (level !== "easy" && rent.hasApartment && p.energy < 35 && t > 30) {
+    return { action: { type: "sleep" }, at: "apartment" };
   }
 
   // 10. Keep happy (hard aims for the goal, medium just stays comfortable)
