@@ -176,9 +176,9 @@ export function Apartment() {
       <div className="flex flex-wrap gap-2">
         <ActionButton
           action={{ type: "sleep" }}
-          disabled={player.happiness >= 100}
+          disabled={player.happiness >= 100 && player.energy >= 100}
         >
-          😴 Rest (30⏱, +10 😊)
+          😴 Rest (30⏱, +10 😊, +25 ⚡)
         </ActionButton>
         {activities.map((a) => (
           // Capture phase: opens the pop-up, then the button's own click

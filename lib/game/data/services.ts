@@ -11,38 +11,134 @@ export interface Meal {
   readonly id: number;
   readonly name: string;
   readonly price: number;
+  /** Energy restored (0-100 scale). Low energy cuts your pay and study gains. */
   readonly energy: number;
   readonly happiness: number;
+  /**
+   * Health change from the FIRST meal of the week (extra meals the same week
+   * only restore energy and happiness). Cheap junk food is slightly bad for
+   * you, premium food is good for you.
+   */
+  readonly health: number;
 }
+/**
+ * Prices run from $4 to $18. The more you pay, the more the meal does for
+ * you: energy, happiness and (mostly) health. A few cheap items are junk food
+ * that fills the "ate this week" box but costs a little health.
+ */
 export const meals: readonly Meal[] = [
-  { id: 1, name: "Value Meal", price: 5, energy: 10, happiness: 5 },
-  { id: 2, name: "Regular Combo", price: 10, energy: 20, happiness: 10 },
-  { id: 3, name: "Super Size Meal", price: 15, energy: 30, happiness: 15 },
-  { id: 4, name: "Healthy Option", price: 12, energy: 25, happiness: 8 },
-  { id: 5, name: "Code Crunch Burger", price: 8, energy: 15, happiness: 12 },
-  { id: 6, name: "Boolean Breakfast", price: 7, energy: 18, happiness: 9 },
+  { id: 1, name: "Value Meal", price: 5, energy: 10, happiness: 5, health: -2 },
+  {
+    id: 2,
+    name: "Regular Combo",
+    price: 10,
+    energy: 20,
+    happiness: 10,
+    health: 1,
+  },
+  {
+    id: 3,
+    name: "Super Size Meal",
+    price: 15,
+    energy: 30,
+    happiness: 15,
+    health: 0,
+  },
+  {
+    id: 4,
+    name: "Healthy Option",
+    price: 12,
+    energy: 25,
+    happiness: 8,
+    health: 8,
+  },
+  {
+    id: 5,
+    name: "Code Crunch Burger",
+    price: 8,
+    energy: 15,
+    happiness: 12,
+    health: -1,
+  },
+  {
+    id: 6,
+    name: "Boolean Breakfast",
+    price: 7,
+    energy: 18,
+    happiness: 9,
+    health: 2,
+  },
   {
     id: 7,
     name: "Algorithm Avocado Toast",
     price: 14,
     energy: 22,
     happiness: 14,
+    health: 6,
   },
-  { id: 8, name: "Recursive Ribs", price: 18, energy: 35, happiness: 18 },
-  { id: 9, name: "Function Fries", price: 4, energy: 8, happiness: 7 },
+  {
+    id: 8,
+    name: "Recursive Ribs",
+    price: 18,
+    energy: 35,
+    happiness: 18,
+    health: 3,
+  },
+  {
+    id: 9,
+    name: "Function Fries",
+    price: 4,
+    energy: 8,
+    happiness: 7,
+    health: -3,
+  },
   {
     id: 10,
     name: "Exception Enchiladas",
     price: 11,
     energy: 25,
     happiness: 13,
+    health: 3,
   },
-  { id: 11, name: "Python Protein Bowl", price: 16, energy: 30, happiness: 10 },
-  { id: 12, name: "Debugging Donuts", price: 6, energy: 12, happiness: 16 },
-  { id: 13, name: "Syntax Smoothie", price: 9, energy: 15, happiness: 14 },
-  { id: 14, name: "Loop Lasagna", price: 13, energy: 28, happiness: 17 },
+  {
+    id: 11,
+    name: "Python Protein Bowl",
+    price: 16,
+    energy: 30,
+    happiness: 10,
+    health: 10,
+  },
+  {
+    id: 12,
+    name: "Debugging Donuts",
+    price: 6,
+    energy: 12,
+    happiness: 16,
+    health: -3,
+  },
+  {
+    id: 13,
+    name: "Syntax Smoothie",
+    price: 9,
+    energy: 15,
+    happiness: 14,
+    health: 4,
+  },
+  {
+    id: 14,
+    name: "Loop Lasagna",
+    price: 13,
+    energy: 28,
+    happiness: 17,
+    health: 4,
+  },
 ];
 export const MEAL_TIME = 10;
+
+/** One number for "how good is this meal for you" (used by the bots). */
+export function mealValue(m: Meal): number {
+  return m.energy + m.happiness + m.health * 2;
+}
 
 export interface HealingService {
   readonly id: number;

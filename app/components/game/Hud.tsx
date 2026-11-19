@@ -1,6 +1,7 @@
 "use client";
 
 import { Briefcase, Clock, DollarSign, PiggyBank } from "lucide-react";
+import { energyStatus } from "@/lib/game/engine";
 import { PlayerAvatar } from "../PlayerAvatar";
 import { useGame } from "./GameContext";
 import { Stat } from "./ui";
@@ -51,6 +52,7 @@ export function PlayersStrip() {
 
 export function StatsPanel() {
   const { player, core } = useGame();
+  const tired = energyStatus(player.energy);
   return (
     <div className="accent-card rounded-2xl bg-card p-4">
       <div className="mb-3 flex items-center gap-3">
@@ -105,6 +107,18 @@ export function StatsPanel() {
           max={100}
           color="bg-red-500"
         />
+        <Stat
+          label="Energy"
+          value={player.energy}
+          max={100}
+          color="bg-amber-400"
+        />
+        {tired && (
+          <p className="text-[11px] text-amber-300">
+            {tired.label}: -{tired.penaltyPct}% pay and study gains. Eat or rest
+            to recover.
+          </p>
+        )}
         <Stat
           label="Education"
           value={player.education}
