@@ -17,6 +17,7 @@ import {
   EXHAUSTED_FACTOR,
   HEALTH_GOAL,
   INTEREST_RATE,
+  MAX_WEEKLY_INTEREST,
   MISSED_MEAL_ENERGY_LOSS,
   MISSED_MEAL_HEALTH_LOSS,
   RENT_INTERVAL_WEEKS,
@@ -396,9 +397,14 @@ export default function RulesPage() {
           </Bullet>
           <Bullet>
             Savings pay <strong>{Math.round(INTEREST_RATE * 100)}%</strong>{" "}
-            interest, collectable once per week.
+            interest, collectable once per week and capped at{" "}
+            <strong>{money(MAX_WEEKLY_INTEREST)}</strong> per collection.
           </Bullet>
-          <Bullet>Stock prices move once every full round of turns.</Bullet>
+          <Bullet>
+            Stock prices move once every full round of turns. Each stock has its
+            own volatility, and occasional market crashes and booms hit
+            everything at once.
+          </Bullet>
         </Bullets>
       </Section>
 
