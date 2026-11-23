@@ -56,6 +56,13 @@ export const RENT_INTERVAL_WEEKS = 4;
 export const MAX_LOG_ENTRIES = 40;
 /** Time units one "shift" takes (and pays one `job.salary` for). */
 export const SHIFT_TIME = 15;
+/** Time units one job application takes (so spamming Apply isn't free). */
+export const APPLY_TIME = 5;
+/** How many experience points short you can be and still get an interview. */
+export const EXP_MARGIN = 10;
+/** Most reliability strikes (weeks with a job but no shift worked) tracked. */
+export const MAX_MISSED_SHIFTS = 4;
+
 /** Forgot to eat all week: the doctor charges this much (or all your cash)… */
 export const DOCTOR_BILL = 50;
 /** …and the visit eats this much of next week's time. */
@@ -195,6 +202,9 @@ export function createPlayer(seat: number, input: NewPlayerInput): PlayerState {
     happiness: 70,
     energy: 100,
     ateThisWeek: false,
+    workedThisWeek: false,
+    missedShifts: 0,
+    jobAttempts: [],
     jobTitle: null,
     enrolled: [],
     possessions: [],
@@ -501,6 +511,7 @@ function applyAction(
           ...p,
           cash: p.cash + salary,
           experience: Math.min(p.experience + 2, 100),
+          workedThisWeek: true,
           energy: clamp(p.energy - WORK_ENERGY_COST, 0, 100),
         },
         `You worked as ${job.title} and earned $${salary}${tiredNote(p.energy)}!${garnish}`,
@@ -526,6 +537,7 @@ function applyAction(
           ...p,
           cash: p.cash + salary,
           experience: Math.min(p.experience + Math.round(shifts * 2), 100),
+          workedThisWeek: true,
           energy: clamp(
             p.energy - Math.round(shifts * WORK_ENERGY_COST),
             0,
@@ -540,8 +552,10 @@ function applyAction(
     case "applyJob": {
       const job = findJob(action.jobTitle);
       if (!job) return fail("That job doesn't exist.");
-      if (p.experience < job.expReq)
-        return fail(`You need ${job.expReq} experience points for this job.`);
+      if (p.jobTitle === job.title)
+        return fail(`You already work as a ${job.title}.`);
+      // Qualifications (education) are a hard requirement: no amount of
+      // persistence replaces the knowledge.
       const missing = (
         Object.entries(job.requiredSubjects) as [SubjectId, number][]
       )
@@ -554,9 +568,35 @@ function applyAction(
         return fail(
           `You don't meet the subject requirements: ${missing.join(", ")}`,
         );
+      const odds = applicationOdds(p, job.title);
+      if (!odds)
+        return fail(
+          `Not enough experience: ${job.title} needs ${job.expReq} (you have ${p.experience}). Work some shifts first.`,
+        );
+      const others = (p.jobAttempts ?? []).filter((a) => a.title !== job.title);
+      if (odds.guaranteed || rng() < odds.chance) {
+        return done(
+          { ...p, jobTitle: job.title, jobAttempts: others },
+          odds.tries > 0
+            ? `🎉 Your persistence paid off! You got the ${job.title} job!`
+            : `Congratulations! You got the ${job.title} job!`,
+          APPLY_TIME,
+        );
+      }
+      // Rejected: pick the most believable reason, remember the attempt.
+      let reason = "There are no openings for that position right now.";
+      if (odds.expGap > 0 && rng() < 0.5)
+        reason = "They want a bit more work experience.";
+      else if (odds.strikes > 0 && rng() < 0.5)
+        reason =
+          "Your record shows missed shifts, so they hesitated to take a risk on you.";
       return done(
-        { ...p, jobTitle: job.title },
-        `Congratulations! You got the ${job.title} job!`,
+        {
+          ...p,
+          jobAttempts: [...others, { title: job.title, tries: odds.tries + 1 }],
+        },
+        `❌ ${job.title} application rejected: ${reason} Keep applying — persistence improves your chances!`,
+        APPLY_TIME,
       );
     }
 
@@ -1171,6 +1211,7 @@ function rollWeek(
     // Every new week starts at home (the apartment / the place you rent).
     location: "apartment",
     ateThisWeek: false,
+    workedThisWeek: false,
     // A new week brings a little free recovery; food and sleep do the rest.
     energy: clamp(before.energy + WEEKLY_ENERGY_RECOVERY, 0, 100),
     happiness: before.happiness > 50 ? before.happiness - 5 : before.happiness,
@@ -1179,6 +1220,23 @@ function rollWeek(
   if (p.location !== before.location)
     summary += " You headed home for the weekend.";
   let next: GameCore = core;
+
+  // Reliability: a week with a job but no shift worked is a strike on your
+  // record (hurts job applications); a week of solid work forgives one.
+  // (`=== false` so old saves without the flag get a pass.)
+  if (before.jobTitle && before.workedThisWeek === false) {
+    const strikes = Math.min((before.missedShifts ?? 0) + 1, MAX_MISSED_SHIFTS);
+    p = { ...p, missedShifts: strikes };
+    summary += ` You didn't work a single shift as ${before.jobTitle} — that goes on your record (${strikes} strike${strikes === 1 ? "" : "s"}).`;
+    next = pushLog(
+      next,
+      seat,
+      `${p.name} skipped work all week (reliability strikes: ${strikes}).`,
+      now,
+    );
+  } else if (before.workedThisWeek && (before.missedShifts ?? 0) > 0) {
+    p = { ...p, missedShifts: (before.missedShifts ?? 0) - 1 };
+  }
 
   // Forgot to eat all week? The doctor sends a bill and takes some of the
   // new week's time. (`=== false` so old saves without the flag get a pass.)
@@ -1311,10 +1369,43 @@ function rollWeek(
 export function jobIsAvailable(p: PlayerState, title: string): boolean {
   const job = findJob(title);
   if (!job) return false;
-  if (p.experience < job.expReq) return false;
+  if (job.expReq - p.experience > EXP_MARGIN) return false;
   return (Object.entries(job.requiredSubjects) as [SubjectId, number][]).every(
     ([s, level]) => subjectLevel(p.subjects, s) >= level,
   );
+}
+
+/**
+ * Odds of landing `title` if you apply now, or `null` when you are too far
+ * below the experience requirement for them to even consider you.
+ * Experience gaps, a record of missed shifts and bad luck ("no openings")
+ * all lower the chance; every failed attempt raises it, and enough
+ * persistence guarantees the job (as long as the education is there).
+ */
+export function applicationOdds(
+  p: PlayerState,
+  title: string,
+): {
+  chance: number;
+  guaranteed: boolean;
+  expGap: number;
+  strikes: number;
+  tries: number;
+} | null {
+  const job = findJob(title);
+  if (!job) return null;
+  const expGap = Math.max(0, job.expReq - p.experience);
+  if (expGap > EXP_MARGIN) return null;
+  const strikes = p.missedShifts ?? 0;
+  const tries =
+    (p.jobAttempts ?? []).find((a) => a.title === title)?.tries ?? 0;
+  const chance = clamp(
+    0.8 - expGap * 0.03 - strikes * 0.12 + tries * 0.2,
+    0.05,
+    0.95,
+  );
+  const guaranteed = tries >= 3 + Math.min(strikes, 2);
+  return { chance, guaranteed, expGap, strikes, tries };
 }
 
 /** Jobs worth showing by default (within reach), as the original filter did. */

@@ -116,6 +116,14 @@ export const vPlayer = v.object({
   energy: v.number(),
   /** Has the player eaten a meal this week? (Missing in older saves.) */
   ateThisWeek: v.optional(v.boolean()),
+  /** Did the player work at least one shift this week? (Missing in older saves.) */
+  workedThisWeek: v.optional(v.boolean()),
+  /** Reliability strikes for weeks with a job but no shift worked. */
+  missedShifts: v.optional(v.number()),
+  /** Failed applications per job: persistence improves the odds next time. */
+  jobAttempts: v.optional(
+    v.array(v.object({ title: v.string(), tries: v.number() })),
+  ),
   jobTitle: v.union(v.string(), v.null()),
   /** Subjects the player has paid tuition for. (Missing in older saves.) */
   enrolled: v.optional(v.array(v.string())),

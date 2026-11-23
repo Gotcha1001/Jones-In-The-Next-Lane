@@ -8,7 +8,12 @@ import {
   subjectName,
   subjectTuition,
 } from "@/lib/game/data/services";
-import { jobIsAvailable, jobsWithinReach } from "@/lib/game/engine";
+import {
+  APPLY_TIME,
+  applicationOdds,
+  jobIsAvailable,
+  jobsWithinReach,
+} from "@/lib/game/engine";
 import type { SubjectId } from "@/lib/game/validators";
 import { useGame } from "./GameContext";
 import { ActionButton, ScreenCard } from "./ui";
@@ -150,6 +155,12 @@ export function EmploymentOffice() {
       title="Employment Office"
       subtitle={`Current job: ${player.jobTitle ?? "none"}`}
     >
+      {(player.missedShifts ?? 0) > 0 && (
+        <p className="mb-3 rounded-lg border border-amber-500/40 bg-amber-500/10 p-2 text-sm text-amber-300">
+          ⚠️ Your record shows {player.missedShifts} week(s) of missed shifts —
+          employers are warier. Work your shifts to rebuild trust.
+        </p>
+      )}
       <label className="mb-3 flex items-center gap-2 text-sm">
         <input
           type="checkbox"
@@ -162,6 +173,7 @@ export function EmploymentOffice() {
       <div className="grid gap-2">
         {list.map((job) => {
           const ok = jobIsAvailable(player, job.title);
+          const odds = applicationOdds(player, job.title);
           const isCurrent = player.jobTitle === job.title;
           const reqs = Object.entries(job.requiredSubjects)
             .map(([s, l]) => `${subjectName(s)} ${l}`)
@@ -190,12 +202,22 @@ export function EmploymentOffice() {
                   Exp {job.expReq}
                   {reqs && ` · ${reqs}`}
                 </p>
+                {odds && !isCurrent && (
+                  <p className="text-[11px] text-amber-300/80">
+                    {odds.guaranteed
+                      ? "They know your face by now — a sure thing"
+                      : `Odds ~${Math.round(odds.chance * 100)}%`}
+                    {odds.expGap > 0 && ` · ${odds.expGap} exp short`}
+                    {odds.tries > 0 &&
+                      ` · ${odds.tries} rejection${odds.tries === 1 ? "" : "s"} (persistence helps)`}
+                  </p>
+                )}
               </div>
               <ActionButton
                 action={{ type: "applyJob", jobTitle: job.title }}
                 disabled={!ok || isCurrent}
               >
-                {isCurrent ? "Current" : "Apply"}
+                {isCurrent ? "Current" : `Apply (${APPLY_TIME}⏱)`}
               </ActionButton>
             </div>
           );
@@ -229,6 +251,12 @@ export function Workplace() {
         <p className="mb-3 rounded-lg border border-red-500/40 bg-red-500/10 p-2 text-sm text-red-500">
           ⚠️ Rent overdue — 20% of your pay is garnished until you pay at the
           Rental Office.
+        </p>
+      )}
+      {(player.missedShifts ?? 0) > 0 && (
+        <p className="mb-3 rounded-lg border border-amber-500/40 bg-amber-500/10 p-2 text-sm text-amber-300">
+          ⚠️ Missed-shift strikes: {player.missedShifts}. Work at least one
+          shift each week to clear them.
         </p>
       )}
       <div className="accent-card mb-3 rounded-xl p-3">
