@@ -10,13 +10,15 @@
  *
  * Difficulty only changes how well he plays:
  *   easy   – forgets to eat, skips rent, studies a little, wastes time
- *   medium – solid all-rounder, keeps money in the bank, upgrades flat
+ *   medium – solid all-rounder, keeps money in the bank, dates when he
+ *            needs a mood boost, upgrades flat
  *   hard   – never forgets anything, studies in big blocks for the winning
- *            job, upgrades quickly and skips the bank (the extra walking costs
- *            more time than the interest earns)
+ *            job, upgrades quickly, banks his spare cash once the luxury flat
+ *            is paid for and dates to keep happiness (and health) up
  */
 import { jobIsAvailable } from "./engine";
 import { findJob, jobs } from "./data/jobs";
+import { datingOptions } from "./data/dating";
 import type { Job } from "./data/jobs";
 import {
   apartmentTiers,
@@ -74,6 +76,10 @@ interface Tuning {
   smartStudy: boolean;
   /** Visits the Healing Centre when health falls below this (0 = never). */
   healBelow: number;
+  /** Does he date to keep his mood (and health) up? */
+  dating: boolean;
+  /** Cash he wants to keep in his pocket after paying for a date. */
+  dateBuffer: number;
 }
 
 const TUNING: Record<BotLevel, Tuning> = {
@@ -90,6 +96,8 @@ const TUNING: Record<BotLevel, Tuning> = {
     bestJob: false,
     smartStudy: false,
     healBelow: 0,
+    dating: false,
+    dateBuffer: 0,
   },
   medium: {
     forgetEatPct: 10,
@@ -104,6 +112,8 @@ const TUNING: Record<BotLevel, Tuning> = {
     bestJob: true,
     smartStudy: true,
     healBelow: 55,
+    dating: true,
+    dateBuffer: 300,
   },
   hard: {
     forgetEatPct: 0,
@@ -111,13 +121,15 @@ const TUNING: Record<BotLevel, Tuning> = {
     slopPct: 0,
     studyUntil: 70,
     studyHours: 10,
-    banks: false,
+    banks: true,
     depositAbove: 800,
     keepCash: 300,
     upgradeBuffer: 150,
     bestJob: true,
     smartStudy: true,
     healBelow: 80,
+    dating: true,
+    dateBuffer: 200,
   },
 };
 
@@ -193,6 +205,15 @@ function studyTarget(
     return [...open].sort((a, b) => p.subjects[a] - p.subjects[b])[0];
   }
   return null;
+}
+
+/** Best-value date: most mood + health for the money (stable, no randomness). */
+function bestDatingPartner() {
+  return [...datingOptions].sort(
+    (a, b) =>
+      (b.happinessBoost + b.healthBoost) / b.datePrice -
+      (a.happinessBoost + a.healthBoost) / a.datePrice,
+  )[0];
 }
 
 export function chooseBotPlan(
@@ -326,12 +347,20 @@ export function chooseBotPlan(
   // 9. Bank: collect interest once a week, park spare cash
   if (T.banks) {
     if (
-      p.bankAccount.savings >= 200 &&
+      p.bankAccount.savings >= 500 &&
       p.bankAccount.lastInterestWeek !== p.week
     ) {
       return { action: { type: "collectInterest" }, at: "bank" };
     }
-    if (p.cash > T.depositAbove) {
+    // Don't park cash while he still needs it for the luxury flat: the
+    // upgrade only looks at cash in hand, so he'd have to walk back to withdraw.
+    const savingForUpgrade =
+      T.upgradeBuffer !== null &&
+      (!rent.hasApartment || tierFromRent(rent.rentAmount) !== "luxury");
+    // …and once cash + savings already reach the money goal he keeps it in
+    // his pocket (step 2 just withdrew it), otherwise he'd redeposit forever.
+    const holdingForWin = p.cash + p.bankAccount.savings >= g.cash;
+    if (!savingForUpgrade && !holdingForWin && p.cash > T.depositAbove) {
       const amount = Math.floor(p.cash - T.keepCash);
       return {
         action: { type: "deposit", amount },
@@ -371,6 +400,32 @@ export function chooseBotPlan(
   if (level !== "easy" && t < 50 && rent.hasApartment) {
     const wants = level === "hard" ? g.happiness : 55;
     if (p.happiness < wants) {
+      // A date beats TV or games: same time as games, plus a health boost.
+      // Skipped if he can't pay for it comfortably (then he stays home).
+      if (T.dating) {
+        const partner = bestDatingPartner();
+        if (p.relationship.isDating && p.relationship.partnerId !== null) {
+          const mine = datingOptions.find(
+            (d) => d.id === p.relationship.partnerId,
+          );
+          if (mine && t >= 20 && p.cash >= mine.datePrice + T.dateBuffer) {
+            return {
+              action: { type: "goOnDate", personId: mine.id },
+              at: "apartment",
+            };
+          }
+        } else if (
+          partner &&
+          t > 15 &&
+          p.cash >= partner.datePrice * 3 + T.dateBuffer
+        ) {
+          // First meeting happens at the Dating Office.
+          return {
+            action: { type: "startDating", personId: partner.id },
+            at: "datingOffice",
+          };
+        }
+      }
       return {
         action: {
           type: "homeActivity",

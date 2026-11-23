@@ -48,7 +48,10 @@ import type {
 // ── Constants ───────────────────────────────────────────────────────────────
 export const STARTING_CASH = 200;
 export const WEEK_LENGTH = 100;
-export const INTEREST_RATE = 0.05;
+/** Weekly savings interest (2 %), so it stays a small bonus next to wages. */
+export const INTEREST_RATE = 0.02;
+/** Most interest one weekly collection can ever pay (hit at $1,250 saved). */
+export const MAX_WEEKLY_INTEREST = 25;
 export const RENT_INTERVAL_WEEKS = 4;
 export const MAX_LOG_ENTRIES = 40;
 /** Time units one "shift" takes (and pays one `job.salary` for). */
@@ -785,7 +788,10 @@ function applyAction(
       if (p.bankAccount.lastInterestWeek === p.week) {
         return fail("You've already collected interest this week.");
       }
-      const interest = Math.floor(p.bankAccount.savings * INTEREST_RATE);
+      const interest = Math.min(
+        Math.floor(p.bankAccount.savings * INTEREST_RATE),
+        MAX_WEEKLY_INTEREST,
+      );
       return done(
         {
           ...p,
@@ -953,15 +959,60 @@ function applyEventEffects(
   return next;
 }
 
-function updateMarket(market: readonly Stock[], rng: () => number): Stock[] {
-  return market.map((s) => {
-    const changePercent = rng() * 35 - 15; // −15 % … +20 %
+/**
+ * Per-stock volatility (the ± range of a normal round, in %). Higher = riskier.
+ * Keyed by stock id so the stored Stock shape (and Convex schema) is unchanged.
+ */
+const STOCK_VOLATILITY: Record<number, number> = {
+  1: 18, // TechCorp    - high risk
+  2: 22, // GreenEnergy - highest risk
+  3: 8, //  MegaRetail  - stable
+  4: 10, // HealthPlus  - defensive
+  5: 15, // DataSec     - moderate-high
+};
+const DEFAULT_VOLATILITY = 12;
+
+/** Chance per round of a market-wide shock. */
+const CRASH_CHANCE = 0.06;
+const BOOM_CHANCE = 0.06;
+
+export type MarketEvent = "crash" | "boom" | null;
+
+/** Roughly bell-shaped, zero-mean sample in (-1, 1) (average of 3 uniforms). */
+function symmetricNoise(rng: () => number): number {
+  return ((rng() + rng() + rng()) / 3) * 2 - 1;
+}
+
+function updateMarket(
+  market: readonly Stock[],
+  rng: () => number,
+): { market: Stock[]; event: MarketEvent } {
+  const roll = rng();
+  const event: MarketEvent =
+    roll < CRASH_CHANCE
+      ? "crash"
+      : roll < CRASH_CHANCE + BOOM_CHANCE
+        ? "boom"
+        : null;
+  // Shock size 15-30 %, scaled up for volatile stocks and down for stable ones.
+  const shockBase = 15 + rng() * 15;
+
+  const next = market.map((s) => {
+    const vol = STOCK_VOLATILITY[s.id] ?? DEFAULT_VOLATILITY;
+    let changePercent = symmetricNoise(rng) * vol; // mean 0, no built-in upside
+    if (event) {
+      const shock = shockBase * (vol / DEFAULT_VOLATILITY);
+      changePercent += event === "crash" ? -shock : shock;
+    }
+    // Can never lose more than 90 % in one round.
+    changePercent = Math.max(changePercent, -90);
     const price = Math.max(
       5,
       round2(s.price + round2((s.price * changePercent) / 100)),
     );
     return { ...s, price, change: round2(changePercent) };
   });
+  return { market: next, event };
 }
 
 // ── Public entry point ──────────────────────────────────────────────────────
@@ -1217,7 +1268,22 @@ function rollWeek(
   if (nextSeat <= seat) {
     // Everyone has had their week → a round passes and the stock market moves.
     round += 1;
-    market = updateMarket(market, rng);
+    const result = updateMarket(market, rng);
+    market = result.market;
+    if (result.event === "crash")
+      next = pushLog(
+        next,
+        seat,
+        "📉 Market crash! Stock prices plunged this round.",
+        now,
+      );
+    else if (result.event === "boom")
+      next = pushLog(
+        next,
+        seat,
+        "📈 Market boom! Stock prices surged this round.",
+        now,
+      );
   }
   if (total > 1) summary += ` ${players[nextSeat].name}'s turn!`;
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { INTEREST_RATE } from "@/lib/game/engine";
+import { INTEREST_RATE, MAX_WEEKLY_INTEREST } from "@/lib/game/engine";
 import { useGame } from "./GameContext";
 import { ActionButton, ScreenCard } from "./ui";
 import { useSharedState } from "@/hooks/useSharedState";
@@ -23,7 +23,7 @@ export function Bank() {
     <div className="space-y-4">
       <ScreenCard
         title="Python Bank"
-        subtitle={`Savings earn ${INTEREST_RATE * 100}% interest, collectable once per week.`}
+        subtitle={`Savings earn ${Math.round(INTEREST_RATE * 100)}% interest (max $${MAX_WEEKLY_INTEREST}), collectable once per week.`}
       >
         <div className="mb-3 flex gap-6 text-sm text-cyan-100">
           <p>
